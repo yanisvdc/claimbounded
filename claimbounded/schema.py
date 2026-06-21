@@ -3,7 +3,7 @@
 This module defines the controlled vocabulary, the ordered claim hierarchy,
 and the :class:`DeviceEvidenceProfile` dataclass that every other module in
 the package consumes.  The vocabulary mirrors the coded variables used in the
-empirical evidence audit of 1,404 public FDA authorization summaries, so that
+empirical evidence audit of 1,400 public FDA authorization summaries, so that
 a newly profiled device is described in exactly the same terms as the
 precedent corpus shipped with the package.
 

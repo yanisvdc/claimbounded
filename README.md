@@ -34,7 +34,7 @@ The package applies a transparent, rule-based codebook to a device description a
 - The **claim ceiling** — the highest monitoring claim routine evidence can support
 - The **evidence gap** — how far that ceiling sits below the original authorization claim
 - The **audit burden** — what additional evidence work closing that gap requires
-- **Comparable FDA precedents** — real 510(k) and De Novo submission numbers from a corpus of 1,404 publicly authorized AI medical devices
+- **Comparable FDA precedents** — real 510(k) and De Novo submission numbers from a corpus of 1,400 publicly authorized AI medical devices
 
 All outputs are grounded in public FDA authorization records. No external APIs, no cloud, no LLMs — fully reproducible and offline.
 
@@ -145,7 +145,7 @@ The **evidence gap** is the number of levels between the authorization endpoint 
 
 ## The Corpus
 
-The package ships with a structured dataset of **1,404 FDA-authorized AI medical devices**, extracted from public 510(k) and De Novo authorization summaries. Each record contains:
+The package ships with a structured dataset of **1,400 FDA-authorized AI medical devices**, extracted from public 510(k) and De Novo authorization summaries. Each record contains:
 
 - Authorization endpoint type and ground-truth modality
 - Routine postmarket evidence stream (as described in the public summary)
@@ -192,7 +192,7 @@ Fill in a device description using structured dropdowns (controlled vocabulary m
 The form is pre-filled with a worked example (large vessel occlusion triage device). Hit **Auto-complete Example** to reset, or **Clear All Fields** to start from scratch.
 
 ### ② Corpus Search
-Search the 1,404-device corpus by device name, manufacturer, or intended use. Results render as a full stakeholder HTML report (downloadable as HTML or Word) showing all matching devices with complete intended use text and authorization details.
+Search the 1,400-device corpus by device name, manufacturer, or intended use. Results render as a full stakeholder HTML report (downloadable as HTML or Word) showing all matching devices with complete intended use text and authorization details.
 
 ### ③ Submission Lookup
 Enter a 510(k) or De Novo submission number (e.g. `K192383`) to retrieve the complete coded profile — including the full intended use text, authorization performance claim, claim ceiling, and supporting quotes from the public FDA authorization summary.
@@ -223,7 +223,7 @@ claimbounded/
 │   ├── cli.py             # CLI entry point (report, precedents, lookup, search, ui)
 │   ├── ui.py              # Gradio interactive UI (requires claimbounded[ui])
 │   └── data/
-│       └── fda_ai_device_claims.csv   # 1,404 FDA-authorized AI device records
+│       └── fda_ai_device_claims.csv   # 1,400 FDA-authorized AI device records
 ├── examples/
 │   ├── lvo_stroke_triage.py           # Worked example: LVO triage device
 │   ├── lvo_report.md                  # Sample report output
@@ -324,7 +324,7 @@ If you use `claimbounded` in your research, please cite:
   author  = {Yanis Vandecasteele},
   year    = {2026},
   url     = {https://github.com/yanisvdc/claimbounded},
-  note    = {Schema version v3\_auditability. Grounded in 1,404 public FDA authorization records.}
+  note    = {Schema version v3\_auditability. Grounded in 1,400 public FDA authorization records.}
 }
 ```
 

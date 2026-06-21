@@ -10,3 +10,5 @@ venv/
 .env
 .DS_Store
 .claude/
+fda_ai_evidence_dataset_v3_auditability.csv
+rororor.ipynb

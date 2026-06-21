@@ -21,7 +21,7 @@ from claimbounded.precedents import build_bm25_index
 # --------------------------------------------------------------------------- #
 def test_corpus_loads_full_cohort():
     corpus = load_corpus()
-    assert len(corpus) == 1404
+    assert len(corpus) == 1400
 
 
 def test_profile_fills_defaults():
@@ -113,7 +113,7 @@ def test_audit_burden_returns_label():
 # --------------------------------------------------------------------------- #
 def test_bm25_index_builds():
     index, records = build_bm25_index()
-    assert index.N == len(records) == 1404
+    assert index.N == len(records) == 1400
     assert index.avgdl > 0
 
 
