@@ -5,6 +5,13 @@
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Schema](https://img.shields.io/badge/schema-v3__auditability-teal)](claimbounded/schema.py)
+[![HuggingFace Space](https://img.shields.io/badge/🤗%20HuggingFace-Live%20Demo-orange)](https://huggingface.co/spaces/yanisvdc/claimbounded)
+
+## Try it now — no install required
+
+**[→ Open the live app on HuggingFace Spaces](https://huggingface.co/spaces/yanisvdc/claimbounded)**
+
+Run the full tool in your browser with zero setup.
 
 `claimbounded` is a regulatory science Python package that answers a foundational question in AI medical device oversight:
 
@@ -179,21 +186,13 @@ Enter a 510(k) or De Novo submission number (e.g. `K192383`) to retrieve the com
 
 ---
 
-## Deploying as a Shareable Web App (HuggingFace Spaces)
+## Live Demo
 
-For a permanent public URL with no Python install required for end users, deploy to HuggingFace Spaces:
+A hosted version is available at no cost, with no installation required:
 
-1. Create a free account at [huggingface.co](https://huggingface.co)
-2. Create a new Space at [huggingface.co/new-space](https://huggingface.co/new-space) → select **Gradio** SDK
-3. Push this repository to the Space:
+**[https://huggingface.co/spaces/yanisvdc/claimbounded](https://huggingface.co/spaces/yanisvdc/claimbounded)**
 
-```bash
-git remote add space https://huggingface.co/spaces/YOUR_HF_USERNAME/claimbounded
-git push space main
-```
-
-HuggingFace auto-detects `app.py` and `requirements.txt`, installs dependencies, and serves the app at:
-`https://huggingface.co/spaces/YOUR_HF_USERNAME/claimbounded`
+Open the link in any browser to use the full tool — form, report generation, corpus search, and submission lookup all run on HuggingFace's servers. No Python, no setup.
 
 ---
 
@@ -309,7 +308,7 @@ If you use `claimbounded` in your research, please cite:
 ```bibtex
 @software{claimbounded2026,
   title   = {claimbounded: Claim-Bounded Monitoring of AI-Enabled Medical Devices},
-  author  = {Yanis Van den Berghe},
+  author  = {Yanis Vandecasteele},
   year    = {2026},
   url     = {https://github.com/yanisvdc/claimbounded},
   note    = {Schema version v3\_auditability. Grounded in 1,404 public FDA authorization records.}
@@ -320,4 +319,4 @@ If you use `claimbounded` in your research, please cite:
 
 ## License
 
-MIT © 2026 claimbounded contributors
+MIT © 2026 Yanis Vandecasteele
