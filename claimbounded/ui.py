@@ -1383,7 +1383,8 @@ def launch(share: bool = False, server_port: int = 7860, server_name: str = "127
     print("=" * 56)
     print()
 
-    demo.launch(inbrowser=True, share=share, server_port=server_port, server_name=server_name)
+    demo.launch(inbrowser=True, share=share, server_port=server_port,
+                server_name=server_name, ssr_mode=False)
 
 
 if __name__ == "__main__":  # pragma: no cover
