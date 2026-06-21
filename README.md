@@ -1,3 +1,16 @@
+---
+title: claimbounded
+emoji: 🏥
+colorFrom: blue
+colorTo: teal
+sdk: gradio
+sdk_version: "4.0"
+app_file: app.py
+pinned: false
+license: mit
+short_description: Claim-bounded monitoring of AI-enabled medical devices
+---
+
 # claimbounded
 
 **Claim-Bounded Monitoring of AI-Enabled Medical Devices**
