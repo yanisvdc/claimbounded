@@ -1,14 +1,15 @@
-"""HuggingFace Spaces entry point for claimbounded.
+"""HuggingFace Spaces entry point for claimbounded."""
 
-Deploy to HuggingFace Spaces:
-  1. Create a new Space at huggingface.co/new-space (SDK: Gradio)
-  2. Push this repo — HF Spaces auto-detects app.py and requirements.txt
-  3. The Space URL becomes your shareable one-click link
+import os
 
-No Python install needed for end users — they just open the URL.
-"""
+# Set server config via env vars — HF Spaces standard approach
+os.environ.setdefault("GRADIO_SERVER_NAME", "0.0.0.0")
+os.environ.setdefault("GRADIO_SERVER_PORT", "7860")
 
 from claimbounded.ui import launch
 
-# server_name="0.0.0.0" required for HuggingFace Spaces networking
-launch(server_name="0.0.0.0", server_port=7860)
+if __name__ == "__main__":
+    launch(server_name="0.0.0.0", server_port=7860)
+else:
+    # Called by HF Spaces via import — env vars handle network config
+    launch(server_name="0.0.0.0", server_port=7860)
