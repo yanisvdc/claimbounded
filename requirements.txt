@@ -1,2 +1,2 @@
-gradio>=4.0
+gradio==5.29.0
 python-docx>=1.1

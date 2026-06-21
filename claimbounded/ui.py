@@ -1188,7 +1188,7 @@ def launch(share: bool = False, server_port: int = 7860, server_name: str = "127
   </div>
 </div>"""
 
-    with gr.Blocks(title="claimbounded") as demo:
+    with gr.Blocks(title="claimbounded", theme=gr.themes.Soft()) as demo:
 
         gr.Markdown("# claimbounded")
         gr.Markdown(
@@ -1383,8 +1383,7 @@ def launch(share: bool = False, server_port: int = 7860, server_name: str = "127
     print("=" * 56)
     print()
 
-    demo.launch(inbrowser=True, share=share, server_port=server_port,
-                server_name=server_name, theme=gr.themes.Soft())
+    demo.launch(inbrowser=True, share=share, server_port=server_port, server_name=server_name)
 
 
 if __name__ == "__main__":  # pragma: no cover
