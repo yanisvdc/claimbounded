@@ -1375,15 +1375,7 @@ def launch(share: bool = False, server_port: int = 7860, server_name: str = "127
                 lookup_example_btn.click(fn=_lookup_example, inputs=[], outputs=[inp_lookup])
                 clear_lookup_btn.click(fn=_lookup_clear, inputs=[], outputs=[inp_lookup])
 
-    print()
-    print("=" * 56)
-    print("  claimbounded UI launching...")
-    print(f"  → http://localhost:{server_port}")
-    print("  All processing runs locally. No data leaves your machine.")
-    print("=" * 56)
-    print()
-
-    demo.launch(inbrowser=True, share=share, server_port=server_port,
+    demo.launch(inbrowser=False, share=share, server_port=server_port,
                 server_name=server_name, ssr_mode=False)
 
 
