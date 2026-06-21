@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claimbounded"
+version = "0.1.0"
+description = "Claim-bounded monitoring of AI-enabled medical devices: profile a device, classify what postmarket evidence can substantiate, and retrieve comparable FDA precedents."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "claimbounded contributors" }]
+keywords = ["FDA", "medical-devices", "AI", "postmarket", "monitoring", "regulatory-science"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Healthcare Industry",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+ui = ["gradio>=4.0", "python-docx>=1.1"]
+
+[project.scripts]
+claimbounded = "claimbounded.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yanisvdc/claimbounded"
+Issues = "https://github.com/yanisvdc/claimbounded/issues"
+
+[tool.setuptools]
+packages = ["claimbounded"]
+
+[tool.setuptools.package-data]
+claimbounded = ["data/*.csv"]
