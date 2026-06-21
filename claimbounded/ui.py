@@ -1208,7 +1208,7 @@ def _build_blocks(gr):
   </div>
 </div>"""
 
-    with gr.Blocks(title="claimbounded", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="claimbounded") as demo:
 
         gr.Markdown("# claimbounded")
         gr.Markdown(
