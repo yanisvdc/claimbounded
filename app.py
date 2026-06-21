@@ -1,15 +1,17 @@
-"""HuggingFace Spaces entry point for claimbounded."""
+"""HuggingFace Spaces entry point for claimbounded.
 
-import os
+Exposes ``demo`` at module level so HuggingFace's Gradio SDK can find it,
+then launches with server_name="0.0.0.0" so the health checker can reach it.
+"""
 
-# Set server config via env vars — HF Spaces standard approach
-os.environ.setdefault("GRADIO_SERVER_NAME", "0.0.0.0")
-os.environ.setdefault("GRADIO_SERVER_PORT", "7860")
+from claimbounded.ui import build_demo
 
-from claimbounded.ui import launch
+# Build demo at module level — HF Gradio SDK imports this file and looks for 'demo'
+demo = build_demo()
 
-if __name__ == "__main__":
-    launch(server_name="0.0.0.0", server_port=7860)
-else:
-    # Called by HF Spaces via import — env vars handle network config
-    launch(server_name="0.0.0.0", server_port=7860)
+demo.launch(
+    server_name="0.0.0.0",   # required for HF health checker
+    server_port=7860,
+    inbrowser=False,
+    show_error=True,
+)

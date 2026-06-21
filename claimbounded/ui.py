@@ -1146,12 +1146,32 @@ def _lookup_clear():
 # App launcher
 # ---------------------------------------------------------------------------
 
-def launch(share: bool = False, server_port: int = 7860, server_name: str = "127.0.0.1") -> None:
-    """Launch the claimbounded Gradio UI locally."""
+def build_demo():
+    """Build and return the Gradio demo object without launching it.
+
+    Used by HuggingFace Spaces so ``demo`` is available at module level,
+    which is what the Gradio SDK expects when it imports ``app.py``.
+    """
     try:
         import gradio as gr
     except ImportError:
         raise ImportError("Gradio is required. Install with:\n    pip install claimbounded[ui]")
+    return _build_blocks(gr)
+
+
+def launch(share: bool = False, server_port: int = 7860, server_name: str = "127.0.0.1") -> None:
+    """Build and launch the claimbounded Gradio UI."""
+    try:
+        import gradio as gr
+    except ImportError:
+        raise ImportError("Gradio is required. Install with:\n    pip install claimbounded[ui]")
+    demo = _build_blocks(gr)
+    demo.launch(inbrowser=(server_name not in ("0.0.0.0", "")), share=share,
+                server_port=server_port, server_name=server_name)
+
+
+def _build_blocks(gr):
+    """Build the Gradio Blocks UI and return the demo object."""
 
     DISCLAIMER = (
         "> **Disclaimer:** Preliminary classification under the study codebook from "
@@ -1375,8 +1395,7 @@ def launch(share: bool = False, server_port: int = 7860, server_name: str = "127
                 lookup_example_btn.click(fn=_lookup_example, inputs=[], outputs=[inp_lookup])
                 clear_lookup_btn.click(fn=_lookup_clear, inputs=[], outputs=[inp_lookup])
 
-    demo.launch(inbrowser=False, share=share,
-                server_port=server_port, server_name=server_name)
+    return demo
 
 
 if __name__ == "__main__":  # pragma: no cover
