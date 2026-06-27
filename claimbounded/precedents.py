@@ -205,7 +205,8 @@ def retrieve_precedents(
     bm25_raw = [index.score(query_tokens, i) for i in range(len(records))]
     bm25_norm = _normalize(bm25_raw)
 
-    self_sub = str(profile.get("submission_number", "")).strip().upper()
+    raw_sub = str(profile.get("submission_number", "")).strip().upper()
+    self_sub = raw_sub if raw_sub not in {"", "UNCLEAR"} else ""
 
     scored: list[tuple[float, dict[str, Any], dict[str, Any]]] = []
     for i, rec in enumerate(records):

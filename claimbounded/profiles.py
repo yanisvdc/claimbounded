@@ -69,7 +69,7 @@ def profile_device(device_record: dict[str, Any]) -> DeviceEvidenceProfile:
 
 @lru_cache(maxsize=1)
 def _read_rows() -> tuple[dict[str, Any], ...]:
-    with open(_DATA_FILE, newline="", encoding="utf-8") as fh:
+    with open(_DATA_FILE, newline="", encoding="utf-8-sig") as fh:
         reader = csv.DictReader(fh)
         return tuple(normalize_device_record(row) for row in reader)
 
