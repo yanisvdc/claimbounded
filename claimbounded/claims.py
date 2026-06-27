@@ -141,11 +141,19 @@ def _derive_audit_burden(profile: DeviceEvidenceProfile) -> str:
 
     if endpoint_type == "risk_prediction_or_prognosis":
         return "requires_longitudinal_registry"
-    if gt in {"longitudinal_outcome", "clinical_outcome"}:
+    if endpoint_type in {"nonclinical_technical_or_bench_performance",
+                          "no_device_specific_performance_data_in_public_summary",
+                          "technical_performance_only", "substantial_equivalence_only"}:
+        return "requires_new_validation_study"
+    if endpoint_type == "workflow_or_timeliness_performance":
+        return "routine_data_only"
+    if gt in {"longitudinal_clinical_outcome"}:
         return "requires_longitudinal_registry"
-    if gt in {"expert_annotation", "expert_reader_panel", "expert_consensus"}:
+    if gt in {"expert_annotation", "expert_reader_panel",
+              "pathology_or_histology", "phantom_or_bench_reference"}:
         return "requires_sampling_or_chart_review"
-    if gt in {"clinical_diagnosis", "laboratory_reference", "pathology"}:
+    if gt in {"clinical_diagnosis", "laboratory_reference_method",
+              "physiologic_reference_standard", "predicate_device_comparison"}:
         return "requires_data_linkage"
     if linked == "yes":
         return "routine_data_only"
@@ -190,12 +198,19 @@ def estimate_authorization_remeasurement(profile: DeviceEvidenceProfile) -> dict
 
 def _endpoint_type_to_claim(endpoint_type: str) -> str:
     mapping = {
+        # V4 endpoint type names (locked OSF codebook)
         "diagnostic_accuracy": "clinical_accuracy_or_calibration",
-        "triage_sensitivity_specificity": "clinical_accuracy_or_calibration",
         "risk_prediction_or_prognosis": "clinical_accuracy_or_calibration",
-        "physiologic_event_detection": "clinical_accuracy_or_calibration",
+        "therapy_planning_or_control_performance": "clinical_accuracy_or_calibration",
         "quantitative_measurement_agreement": "output_quality_or_measurement_agreement",
         "segmentation_geometric_accuracy": "output_quality_or_measurement_agreement",
+        "data_generation_or_acquisition_quality": "output_quality_or_measurement_agreement",
+        "workflow_or_timeliness_performance": "workflow_performance",
+        "nonclinical_technical_or_bench_performance": "technical_pipeline_stability",
+        "no_device_specific_performance_data_in_public_summary": "technical_pipeline_stability",
+        # V3 legacy names (backward compat for any old corpus rows)
+        "triage_sensitivity_specificity": "clinical_accuracy_or_calibration",
+        "physiologic_event_detection": "clinical_accuracy_or_calibration",
         "image_quality_or_reconstruction_fidelity": "output_quality_or_measurement_agreement",
         "technical_performance_only": "technical_pipeline_stability",
         "substantial_equivalence_only": "technical_pipeline_stability",
@@ -215,9 +230,8 @@ def _describe_gap(gap: int) -> str:
 def _default_extra_evidence(burden: str) -> str:
     return {
         "routine_data_only": "No additional linkage required; confirm denominator and version capture.",
-        "requires_data_linkage": "Link each AI output to the downstream reference report or label.",
-        "requires_sampling_or_chart_review": "Draw a sampling frame and perform chart/image review against an adjudicated reference.",
-        "requires_expert_adjudication": "Convene expert adjudication of a reference label for sampled cases.",
-        "requires_longitudinal_registry": "Establish longitudinal follow-up or registry linkage for outcome ascertainment.",
-        "requires_new_clinical_study": "Run a new prospective study to re-measure the authorized endpoint.",
+        "requires_data_linkage": "Join AI output log to structured clinical records (ICD codes, lab results, report fields) by patient/study identifier.",
+        "requires_sampling_or_chart_review": "Draw a sampling frame and perform chart/image review against an expert-adjudicated reference.",
+        "requires_longitudinal_registry": "Establish longitudinal EHR follow-up or registry linkage for outcome ascertainment.",
+        "requires_new_validation_study": "Run a new validation study — existing clinical data cannot reconstruct the authorized endpoint.",
     }.get(burden, "Additional evidence linkage required.")

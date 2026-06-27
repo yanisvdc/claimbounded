@@ -20,11 +20,14 @@ from typing import Any
 
 _UNCLEAR = "unclear"
 
-SUBMISSION_PATHWAYS = ["510k", "de_novo", _UNCLEAR]
+SUBMISSION_PATHWAYS = ["510k", "de_novo", "pma", "other", _UNCLEAR]
 CLINICAL_DOMAINS = [
-    "cardiology", "dental", "general_hospital", "laboratory_ivd",
-    "neurology", "oncology", "ophthalmology", "other",
-    "pathology", "radiology", "surgery", _UNCLEAR,
+    # V4: FDA Panel vocabulary (mirrors FDA's own panel classification)
+    "radiology", "cardiovascular", "neurology", "pathology",
+    "ophthalmology", "dental", "general_hospital", "general_and_plastic_surgery",
+    "orthopedic", "gastroenterology_urology", "hematology", "microbiology",
+    "clinical_chemistry", "clinical_toxicology", "anesthesiology",
+    "obstetrics_gynecology", "immunology", "ear_nose_throat", "other", _UNCLEAR,
 ]
 DEVICE_FUNCTIONS = [
     "triage_notification", "diagnostic_classification", "segmentation_quantification",
@@ -39,11 +42,17 @@ INPUT_DATA_TYPES = [
     "genomic_or_molecular_data", "mixed", "other", _UNCLEAR,
 ]
 ENDPOINT_TYPES = [
-    "diagnostic_accuracy", "triage_sensitivity_specificity",
-    "quantitative_measurement_agreement", "segmentation_geometric_accuracy",
-    "image_quality_or_reconstruction_fidelity", "risk_prediction_or_prognosis",
-    "physiologic_event_detection", "workflow_or_time_to_notification",
-    "technical_performance_only", "substantial_equivalence_only", _UNCLEAR,
+    # V4 names (locked OSF codebook)
+    "diagnostic_accuracy",
+    "quantitative_measurement_agreement",
+    "segmentation_geometric_accuracy",
+    "data_generation_or_acquisition_quality",
+    "risk_prediction_or_prognosis",
+    "workflow_or_timeliness_performance",
+    "therapy_planning_or_control_performance",
+    "nonclinical_technical_or_bench_performance",
+    "no_device_specific_performance_data_in_public_summary",
+    _UNCLEAR,
 ]
 GROUND_TRUTH_MODALITIES = [
     "expert_reader_panel", "expert_annotation", "clinical_diagnosis",
@@ -57,6 +66,7 @@ EVIDENCE_STREAMS = [
     "output_logs_only", "technical_logs_only", "downstream_clinical_outcome",
     "none_described", _UNCLEAR,
 ]
+ENDPOINT_LINKED_VALUES = ["yes", "possible_but_not_described", "no", _UNCLEAR]
 YES_NO_UNCLEAR = ["yes", "no", _UNCLEAR]
 RETRIEVAL_MODES = ["hybrid", "like_for_like", "adjacent", "claim_gap"]
 
@@ -77,12 +87,19 @@ _CLAIM_LABELS = {
     "clinical_accuracy_or_calibration": "Clinical accuracy or calibration",
 }
 _ENDPOINT_TO_CLAIM = {
+    # V4 names (locked OSF codebook)
     "diagnostic_accuracy": "clinical_accuracy_or_calibration",
-    "triage_sensitivity_specificity": "clinical_accuracy_or_calibration",
     "risk_prediction_or_prognosis": "clinical_accuracy_or_calibration",
-    "physiologic_event_detection": "clinical_accuracy_or_calibration",
+    "therapy_planning_or_control_performance": "clinical_accuracy_or_calibration",
     "quantitative_measurement_agreement": "output_quality_or_measurement_agreement",
     "segmentation_geometric_accuracy": "output_quality_or_measurement_agreement",
+    "data_generation_or_acquisition_quality": "output_quality_or_measurement_agreement",
+    "workflow_or_timeliness_performance": "workflow_performance",
+    "nonclinical_technical_or_bench_performance": "technical_pipeline_stability",
+    "no_device_specific_performance_data_in_public_summary": "technical_pipeline_stability",
+    # V3 legacy names (backward compat)
+    "triage_sensitivity_specificity": "clinical_accuracy_or_calibration",
+    "physiologic_event_detection": "clinical_accuracy_or_calibration",
     "image_quality_or_reconstruction_fidelity": "output_quality_or_measurement_agreement",
     "technical_performance_only": "technical_pipeline_stability",
     "substantial_equivalence_only": "technical_pipeline_stability",
@@ -112,7 +129,7 @@ _EXAMPLE = dict(
     authorization_endpoint_type="diagnostic_accuracy",
     authorization_ground_truth_modality="expert_reader_panel",
     routine_postmarket_evidence_stream="workflow_logs",
-    endpoint_linked_to_ai_output="no",
+    endpoint_linked_to_ai_output="possible_but_not_described",
     endpoint_routinely_recorded="no",
     human_correction_available="no",
     human_overread_or_confirmation_required="no",
@@ -1259,38 +1276,38 @@ def _build_blocks(gr):
                         inp_applicant = gr.Textbox(label="Manufacturer / applicant", value=_EXAMPLE["applicant"], placeholder="e.g. Acme Medical Inc.")
                         inp_submission = gr.Textbox(label="Submission number (if known)", value="", placeholder="e.g. K192383")
                         inp_pathway = gr.Dropdown(SUBMISSION_PATHWAYS, value=_EXAMPLE["submission_pathway"], label="Submission pathway",
-                            info="510(k) = substantial equivalence to a predicate device. De Novo = novel low-to-moderate risk device without a predicate.")
-                        inp_domain = gr.Dropdown(CLINICAL_DOMAINS, value=_EXAMPLE["clinical_domain"], label="Clinical domain",
-                            info="Primary medical specialty of the device's intended use.")
+                            info="510k = 510(k) clearance (substantial equivalence) · de_novo = De Novo grant (novel low-to-moderate risk) · pma = Premarket Approval · other = any other pathway.")
+                        inp_domain = gr.Dropdown(CLINICAL_DOMAINS, value=_EXAMPLE["clinical_domain"], label="Clinical domain (FDA Panel)",
+                            info="FDA Panel (Lead) for this device — mirrors FDA's own panel classification. Use 'radiology' for imaging AI; 'cardiovascular' for cardiac/EP devices; 'general_hospital' for cross-specialty devices. Note: oncology is a disease_area, not a panel — code the modality panel (radiology/pathology).")
                         gr.Markdown("##### Technical profile")
                         inp_function = gr.Dropdown(DEVICE_FUNCTIONS, value=_EXAMPLE["device_function"], label="Device function",
-                            info="triage_notification = flags urgent cases · diagnostic_classification = classifies findings · segmentation_quantification = delineates and measures structures · risk_prediction_prognosis = estimates future events · physiologic_monitoring = monitors signals.")
+                            info="triage_notification = flags/prioritizes cases for urgent review · diagnostic_classification = classifies a clinical condition or finding · segmentation_quantification = delineates anatomy/pathology or quantifies structures · risk_prediction_prognosis = predicts future events or prognosis · physiologic_monitoring = monitors continuous physiologic signals · workflow_planning_guidance = guides workflow, scheduling, or care planning.")
                         inp_input_type = gr.Dropdown(INPUT_DATA_TYPES, value=_EXAMPLE["input_data_type"], label="Input data type",
-                            info="Type of data the device processes (radiology = CT/MRI/X-ray, pathology = slide images, physiologic = ECG/EEG).")
+                            info="Type of data the device processes (radiology_image = CT/MRI/X-ray, pathology_image = slide images, physiologic_signal = ECG/EEG).")
                         inp_endpoint_type = gr.Dropdown(ENDPOINT_TYPES, value=_EXAMPLE["authorization_endpoint_type"], label="Authorization endpoint type",
-                            info="diagnostic_accuracy = sensitivity/specificity/AUC · triage_sensitivity_specificity = binary detection · quantitative_measurement_agreement = Bland-Altman/ICC · segmentation_geometric_accuracy = Dice/Hausdorff · workflow_or_time_to_notification = delivery time.")
+                            info="diagnostic_accuracy = sens/spec/AUC for clinical condition detection (includes triage, physiologic event detection) · quantitative_measurement_agreement = Bland-Altman/ICC vs reference method · segmentation_geometric_accuracy = Dice/Hausdorff · data_generation_or_acquisition_quality = image quality/reconstruction metrics only, no clinical accuracy · risk_prediction_or_prognosis = future event prediction (C-stat, calibration against longitudinal outcomes) · workflow_or_timeliness_performance = workflow/time metrics ONLY, no clinical accuracy · therapy_planning_or_control_performance = treatment plan/dose/intervention quality · nonclinical_technical_or_bench_performance = software V&V or bench testing only · no_device_specific_performance_data_in_public_summary = bare clearance letter.")
 
                     with gr.Column(scale=1):
                         gr.Markdown("##### Evidence profile")
                         inp_ground_truth = gr.Dropdown(GROUND_TRUTH_MODALITIES, value=_EXAMPLE["authorization_ground_truth_modality"],
                             label="Authorization ground truth modality",
-                            info="expert_reader_panel = adjudication by multiple experts · clinical_diagnosis = diagnosis from medical record · laboratory_reference_method = gold-standard lab assay · pathology_or_histology = tissue examination · longitudinal_clinical_outcome = confirmed outcome at follow-up.")
+                            info="expert_reader_panel = multiple readers or adjudication committee · expert_annotation = single expert labeller · clinical_diagnosis = standard clinical workup diagnosis · laboratory_reference_method = validated lab measurement method · pathology_or_histology = biopsy/tissue · longitudinal_clinical_outcome = future clinical event at follow-up · physiologic_reference_standard = validated physiologic device (ECG, invasive BP) · phantom_or_bench_reference = controlled phantom or bench standard.")
                         inp_stream = gr.Dropdown(EVIDENCE_STREAMS, value=_EXAMPLE["routine_postmarket_evidence_stream"],
                             label="Routine postmarket evidence stream",
-                            info="workflow_logs = timestamps/delivery/acknowledgement · human_corrections_or_edits = recorded edits to AI outputs · clinician_acceptance_or_override = accept/reject/override decisions · output_logs_only = AI scores with no downstream linkage · none_described = no evidence stream documented.")
+                            info="workflow_logs = alert timestamps/delivery/acknowledgement/queue records · human_corrections_or_edits = recorded physician edits to AI outputs · clinician_acceptance_or_override = explicit accept/reject/override decisions captured · output_logs_only = AI scores or flags with no downstream clinical linkage · technical_logs_only = only uptime/error/processing logs · none_described = no evidence stream documented in the summary.")
                         gr.Markdown("##### Deployment evidence — key ceiling drivers")
-                        inp_linked = gr.Radio(YES_NO_UNCLEAR, value=_EXAMPLE["endpoint_linked_to_ai_output"],
+                        inp_linked = gr.Radio(ENDPOINT_LINKED_VALUES, value=_EXAMPLE["endpoint_linked_to_ai_output"],
                             label="AI output linked case-level to downstream reference?",
-                            info="Is each AI output individually matched to a downstream reference result or clinical report?")
+                            info="yes = summary EXPLICITLY describes case-level linkage of AI output to ground truth (shared identifiers, co-located storage). possible_but_not_described = linkage is structurally possible from clinical records but not described in the summary. no = linkage is structurally impossible (bench reference, specialized conditions not in routine care).")
                         inp_recorded = gr.Radio(YES_NO_UNCLEAR, value=_EXAMPLE["endpoint_routinely_recorded"],
                             label="Endpoint routinely recorded in clinical workflow?",
-                            info="Is the authorization endpoint outcome documented in routine clinical records without extra effort?")
+                            info="Does the authorization reference standard occur as part of standard clinical care for this patient population? 'yes' means the specific reference process (not a proxy) happens for nearly all patients in routine care.")
                         inp_correction = gr.Radio(YES_NO_UNCLEAR, value=_EXAMPLE["human_correction_available"],
-                            label="Clinician accept / edit / override captured on AI output?",
-                            info="Does the system log whether a clinician accepted, modified, or rejected each AI recommendation?")
+                            label="Clinician edit / confirm / override CAPTURED on AI output?",
+                            info="Does the system explicitly capture whether a clinician accepted, modified, or overrode the AI output — AND is that decision stored in an accessible system? 'yes' requires both: (A) required explicit edit/confirmation and (B) that response is stored.")
                         inp_overread = gr.Radio(YES_NO_UNCLEAR, value=_EXAMPLE["human_overread_or_confirmation_required"],
                             label="Human overread or confirmation required before clinical use?",
-                            info="Does clinical policy require a human to review the AI output before it influences care decisions?")
+                            info="Does clinical policy or the device's intended use require a human to review the AI output before it influences care? 'reviews' alone is not sufficient — the requirement must be for substantive edit/confirmation.")
                         gr.Markdown("##### Precedent retrieval")
                         inp_mode = gr.Radio(RETRIEVAL_MODES, value="hybrid", label="Retrieval mode",
                             info="hybrid = best overall (recommended) · like_for_like = same regulatory identity · adjacent = same evidence problem · claim_gap = same authorization-ceiling divergence.")

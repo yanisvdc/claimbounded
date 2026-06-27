@@ -69,19 +69,17 @@ AUDIT_BURDEN_ORDER: list[str] = [
     "routine_data_only",
     "requires_data_linkage",
     "requires_sampling_or_chart_review",
-    "requires_expert_adjudication",
     "requires_longitudinal_registry",
-    "requires_new_clinical_study",
+    "requires_new_validation_study",
     "unclear",
 ]
 
 AUDIT_BURDEN_LABELS: dict[str, str] = {
     "routine_data_only": "Auditable from routine data only",
-    "requires_data_linkage": "Requires linkage of AI output to reference evidence",
+    "requires_data_linkage": "Requires data linkage (structured records exist; needs join)",
     "requires_sampling_or_chart_review": "Requires sampling and chart/image review",
-    "requires_expert_adjudication": "Requires expert adjudication of a reference label",
-    "requires_longitudinal_registry": "Requires a longitudinal registry or follow-up",
-    "requires_new_clinical_study": "Requires a new prospective clinical study",
+    "requires_longitudinal_registry": "Requires longitudinal follow-up or registry linkage",
+    "requires_new_validation_study": "Requires a new validation study",
     "unclear": "Unclear from available description",
 }
 
