@@ -139,16 +139,16 @@ def schema_similarity(profile: DeviceEvidenceProfile, rec: dict[str, Any]) -> fl
 
 
 def evidence_gap_similarity(profile: DeviceEvidenceProfile, rec: dict[str, Any]) -> float:
-    """Similarity of the evidence-gap / monitoring-implication fields."""
+    """Similarity on evidence-gap fields — uses V4 primary variables."""
 
-    # monitoring_implication and reason are categorical; extra_evidence is text.
+    # V4 primary variables: recoverability and evaluability are the key gap signals.
     cat = 0.0
-    for f in ("reason_authorization_endpoint_not_auditable", "monitoring_implication"):
+    for f in ("authorization_endpoint_recoverability", "postmarket_evaluability_class"):
         cat += _field_match(profile.get(f), rec.get(f))
     cat /= 2.0
-    # token overlap on extra_evidence_needed
-    a = set(_tokenize(profile.get("extra_evidence_needed", "")))
-    b = set(_tokenize(rec.get("extra_evidence_needed", "")))
+    # Token overlap on the authorization endpoint description (V4 text field)
+    a = set(_tokenize(profile.get("authorization_endpoint", "") or profile.get("extra_evidence_needed", "")))
+    b = set(_tokenize(rec.get("authorization_endpoint", "") or rec.get("extra_evidence_needed", "")))
     jac = len(a & b) / len(a | b) if (a | b) else 0.0
     return 0.6 * cat + 0.4 * jac
 
@@ -162,18 +162,17 @@ _PRECEDENT_SUMMARY_FIELDS = [
     "device_name",
     "applicant",
     "year",
-    "product_code",
-    "panel",
     "clinical_domain",
+    "disease_area",
     "device_function",
-    "intended_use_summary",
     "authorization_endpoint_type",
     "authorization_ground_truth_modality",
-    "routine_postmarket_evidence_stream",
+    "authorization_endpoint",
+    "postmarket_evaluability_class",
+    "authorization_endpoint_recoverability",
+    "routine_data_claim_type",
     "strongest_auditable_postmarket_claim",
     "postmarket_audit_burden",
-    "extra_evidence_needed",
-    "authorization_performance_claim",
     "supporting_quote_authorization",
 ]
 
@@ -269,11 +268,12 @@ def explain_precedent_match(
 
     shared = []
     for f, label in [
-        ("product_code", "product code"),
+        ("disease_area", "disease area"),
         ("device_function", "device function"),
         ("authorization_endpoint_type", "authorization endpoint"),
         ("authorization_ground_truth_modality", "ground truth"),
-        ("routine_postmarket_evidence_stream", "evidence stream"),
+        ("authorization_endpoint_recoverability", "recoverability"),
+        ("postmarket_evaluability_class", "evaluability class"),
         ("strongest_auditable_postmarket_claim", "claim ceiling"),
         ("postmarket_audit_burden", "audit burden"),
     ]:

@@ -118,9 +118,8 @@ BM25_TEXT_FIELDS = [
 
 EVIDENCE_GAP_FIELDS = [
     "authorization_endpoint_recoverability",
-    "extra_evidence_needed",
-    "reason_authorization_endpoint_not_auditable",
-    "monitoring_implication",
+    "postmarket_evaluability_class",
+    "postmarket_audit_burden",
 ]
 
 # Every column carried on a profile.  Anything not supplied defaults to "unclear".

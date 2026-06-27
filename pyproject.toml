@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claimbounded"
-version = "0.2.0"
+version = "0.2.1"
 description = "Claim-bounded monitoring of AI-enabled medical devices: profile a device, classify what postmarket evidence can substantiate, and retrieve comparable FDA precedents."
 readme = "README.md"
 requires-python = ">=3.9"

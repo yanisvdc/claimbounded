@@ -241,10 +241,11 @@ def _humanize_match(match_str: str) -> str:
     if not match_str or match_str == "text similarity only":
         return "Text similarity only"
     labels = {
-        "product_code": "product code", "device_function": "device function",
+        "disease_area": "disease area", "device_function": "device function",
         "authorization_endpoint_type": "auth. endpoint", "authorization_endpoint": "auth. endpoint",
-        "authorization_ground_truth_modality": "ground truth", "ground_truth": "ground truth",
-        "routine_postmarket_evidence_stream": "evidence stream", "evidence_stream": "evidence stream",
+        "authorization_ground_truth_modality": "ground truth",
+        "authorization_endpoint_recoverability": "recoverability",
+        "postmarket_evaluability_class": "evaluability class",
         "strongest_auditable_postmarket_claim": "claim ceiling", "claim_ceiling": "claim ceiling",
         "postmarket_audit_burden": "audit burden",
     }

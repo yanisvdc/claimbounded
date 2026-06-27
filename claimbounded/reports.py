@@ -123,7 +123,7 @@ def generate_monitoring_profile_report(
     lines.append(f"# Claim-bounded monitoring profile: {profile.name}")
     lines.append("")
     lines.append(f"- Applicant: {profile.get('applicant')}")
-    lines.append(f"- Submission: {profile.get('submission_number')}  |  Product code: {profile.get('product_code')}")
+    lines.append(f"- Submission: {profile.get('submission_number')}  |  Clinical domain: {profile.get('clinical_domain')}  |  Device function: {profile.get('device_function')}")
     lines.append(f"- Authorization endpoint type: {profile.get('authorization_endpoint_type')}")
     lines.append("")
 

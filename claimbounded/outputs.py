@@ -106,16 +106,13 @@ def generate_minimum_audit_dataset(profile: DeviceEvidenceProfile) -> list[str]:
             "Sampling frame for review",
             "Chart/image review protocol against an adjudicated reference",
         ],
-        "requires_expert_adjudication": [
-            "Expert adjudication protocol and reference-label definition",
-            "Sampling frame for adjudicated review",
-        ],
         "requires_longitudinal_registry": [
-            "Longitudinal follow-up / registry linkage for outcome ascertainment",
+            "Longitudinal EHR follow-up or registry linkage for outcome ascertainment",
             "Endpoint ascertainment window and censoring rules",
         ],
-        "requires_new_clinical_study": [
-            "Prospective study protocol to re-measure the authorized endpoint",
+        "requires_new_validation_study": [
+            "New validation study protocol — existing clinical data cannot reconstruct the authorized endpoint",
+            "Independent reference standard generation or reader study design",
         ],
         "routine_data_only": [],
     }

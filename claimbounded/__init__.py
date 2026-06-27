@@ -60,7 +60,7 @@ from .reports import (
     generate_monitoring_profile_report,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "DeviceEvidenceProfile",
