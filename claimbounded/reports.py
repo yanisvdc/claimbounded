@@ -12,6 +12,8 @@ from typing import Any, Optional
 from .claims import (
     classify_audit_burden,
     classify_claim_ceiling,
+    classify_evaluability_class,
+    classify_recoverability,
     classify_supportable_claims,
     estimate_authorization_remeasurement,
 )
@@ -23,7 +25,15 @@ from .outputs import (
     generate_procurement_questions,
 )
 from .precedents import retrieve_precedents
-from .schema import CLAIM_LABELS, DeviceEvidenceProfile
+from .profiles import corpus_stats
+from .schema import (
+    CLAIM_LABELS,
+    EVALUABILITY_CLASS_LABELS,
+    EVALUABILITY_CLASS_DESCRIPTIONS,
+    RECOVERABILITY_LABELS,
+    RECOVERABILITY_DESCRIPTIONS,
+    DeviceEvidenceProfile,
+)
 
 DISCLAIMER = (
     "This package does not determine whether a device is safe or effective and "
@@ -44,20 +54,40 @@ def generate_monitoring_package(
     if precedents is None:
         precedents = retrieve_precedents(profile, mode=mode, k=k)
 
+    evaluability = classify_evaluability_class(profile)
+    recoverability = classify_recoverability(profile)
+    ceiling = classify_claim_ceiling(profile)
+
+    # Update profile with derived values so corpus_stats can read them
+    if str(profile.get("strongest_auditable_postmarket_claim", "unclear")).strip().lower() in {"unclear", ""}:
+        profile["strongest_auditable_postmarket_claim"] = ceiling
+    if str(profile.get("postmarket_evaluability_class", "unclear")).strip().lower() in {"unclear", ""}:
+        profile["postmarket_evaluability_class"] = evaluability
+    if str(profile.get("authorization_endpoint_recoverability", "unclear")).strip().lower() in {"unclear", ""}:
+        profile["authorization_endpoint_recoverability"] = recoverability
+
     return {
         "device": {
             "device_name": profile.get("device_name"),
             "applicant": profile.get("applicant"),
             "submission_number": profile.get("submission_number"),
-            "product_code": profile.get("product_code"),
+            "clinical_domain": profile.get("clinical_domain"),
+            "device_function": profile.get("device_function"),
             "authorization_endpoint_type": profile.get("authorization_endpoint_type"),
         },
         "claim_profile": {
-            "routine_evidence_claim_ceiling": classify_claim_ceiling(profile),
+            "routine_evidence_claim_ceiling": ceiling,
             "supportable_claims": classify_supportable_claims(profile),
             "audit_burden": classify_audit_burden(profile),
             "authorization_remeasurement": estimate_authorization_remeasurement(profile),
+            "postmarket_evaluability_class": evaluability,
+            "evaluability_label": EVALUABILITY_CLASS_LABELS.get(evaluability, evaluability),
+            "evaluability_description": EVALUABILITY_CLASS_DESCRIPTIONS.get(evaluability, ""),
+            "authorization_endpoint_recoverability": recoverability,
+            "recoverability_label": RECOVERABILITY_LABELS.get(recoverability, recoverability),
+            "recoverability_description": RECOVERABILITY_DESCRIPTIONS.get(recoverability, ""),
         },
+        "landscape_context": corpus_stats(profile),
         "claim_support_matrix": generate_claim_support_matrix(profile),
         "dashboard_claim_limits": generate_dashboard_claim_limits(profile),
         "minimum_audit_dataset": generate_minimum_audit_dataset(profile),

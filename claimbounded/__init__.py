@@ -26,6 +26,7 @@ from .schema import (
     DeviceEvidenceProfile,
 )
 from .profiles import (
+    corpus_stats,
     find_in_corpus,
     load_corpus,
     normalize_device_record,
@@ -35,6 +36,8 @@ from .profiles import (
 from .claims import (
     classify_audit_burden,
     classify_claim_ceiling,
+    classify_evaluability_class,
+    classify_recoverability,
     classify_supportable_claims,
     estimate_authorization_remeasurement,
 )
@@ -69,7 +72,10 @@ __all__ = [
     "load_corpus",
     "find_in_corpus",
     "search_corpus",
+    "corpus_stats",
     "classify_claim_ceiling",
+    "classify_evaluability_class",
+    "classify_recoverability",
     "classify_supportable_claims",
     "classify_audit_burden",
     "estimate_authorization_remeasurement",

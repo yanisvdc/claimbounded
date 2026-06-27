@@ -96,6 +96,52 @@ def find_in_corpus(submission_number: str) -> Optional[DeviceEvidenceProfile]:
     return None
 
 
+def corpus_stats(profile: "DeviceEvidenceProfile") -> dict:
+    """Return corpus-level percentages contextualizing a device profile.
+
+    Computes what fraction of the 1,400-device corpus shares the same
+    claim ceiling, recoverability class, and evaluability class — and
+    provides the same statistics filtered to the same device_function peer group.
+    Uses the cached corpus so repeated calls are fast.
+    """
+    records = corpus_records()
+    n_total = len(records)
+    if n_total == 0:
+        return {}
+
+    ceiling = str(profile.get("strongest_auditable_postmarket_claim", "")).strip().lower()
+    recov = str(profile.get("authorization_endpoint_recoverability", "")).strip().lower()
+    evaluability = str(profile.get("postmarket_evaluability_class", "")).strip().lower()
+    fn = str(profile.get("device_function", "")).strip().lower()
+
+    def _pct(field: str, value: str, subset=None) -> tuple[int, int]:
+        pool = subset if subset is not None else records
+        n_match = sum(1 for r in pool if str(r.get(field, "")).strip().lower() == value)
+        return n_match, len(pool)
+
+    result: dict = {"n_corpus": n_total}
+
+    peers = [r for r in records if str(r.get("device_function", "")).strip().lower() == fn] if fn and fn != "unclear" else []
+
+    for key, field in [
+        ("ceiling", "strongest_auditable_postmarket_claim"),
+        ("recoverability", "authorization_endpoint_recoverability"),
+        ("evaluability", "postmarket_evaluability_class"),
+    ]:
+        value = {"ceiling": ceiling, "recoverability": recov, "evaluability": evaluability}[key]
+        if value and value not in {"unclear", ""}:
+            n_match, denom = _pct(field, value)
+            result[f"{key}_n"] = n_match
+            result[f"{key}_pct"] = round(n_match / denom * 100, 1) if denom else None
+            if peers:
+                pn, pdenom = _pct(field, value, peers)
+                result[f"{key}_peer_n"] = pn
+                result[f"{key}_peer_pct"] = round(pn / pdenom * 100, 1) if pdenom else None
+                result[f"n_peers"] = len(peers)
+
+    return result
+
+
 def search_corpus(text: str) -> list[DeviceEvidenceProfile]:
     """Case-insensitive substring search over device name, applicant, and excerpts."""
 

@@ -87,20 +87,20 @@ AUDIT_BURDEN_LABELS: dict[str, str] = {
 # Fields used in structured / schema / evidence-gap similarity
 # ---------------------------------------------------------------------------
 STRUCTURED_REGULATORY_FIELDS = [
-    "product_code",
-    "panel",
-    "submission_pathway",
+    "disease_area",
     "clinical_domain",
     "device_function",
+    "submission_pathway",
+    "panel",
 ]
 
 CLAIM_SCHEMA_FIELDS = [
     "authorization_endpoint_type",
+    "authorization_endpoint_recoverability",
     "authorization_ground_truth_modality",
-    "routine_data_claim_type",
     "strongest_auditable_postmarket_claim",
-    "postmarket_audit_burden",
     "postmarket_evaluability_class",
+    "postmarket_audit_burden",
 ]
 
 BM25_TEXT_FIELDS = [
@@ -190,6 +190,48 @@ PROFILE_FIELDS = [
     "supporting_quote_deployment",
     "supporting_quote_evaluability",
 ]
+
+# ---------------------------------------------------------------------------
+# Evaluability class vocabulary
+# ---------------------------------------------------------------------------
+EVALUABILITY_CLASS_LABELS: dict[str, str] = {
+    "closed_loop_evaluable": "Closed-loop evaluable",
+    "workflow_endpoint_directly_auditable": "Workflow endpoint directly auditable",
+    "correction_evaluable": "Correction-evaluable (edit/override captured)",
+    "delayed_evaluable": "Delayed-evaluable (outcome accumulates over time)",
+    "surrogate_only": "Surrogate-only (no natural correctness signal)",
+    "not_evaluable": "Not evaluable (bare clearance / no deployment description)",
+}
+
+EVALUABILITY_CLASS_DESCRIPTIONS: dict[str, str] = {
+    "closed_loop_evaluable": "Deployment automatically co-logs both the AI output and clinical ground truth — correctness can be measured without extra work.",
+    "workflow_endpoint_directly_auditable": "The authorized endpoint is itself a workflow/timeliness metric (e.g., time-to-notification) and the deployment system logs that metric automatically.",
+    "correction_evaluable": "Clinicians are required to explicitly edit, confirm, or override AI outputs as clinical sign-off, and those decisions are stored in an accessible system.",
+    "delayed_evaluable": "The ground truth outcome will naturally accumulate in routine clinical records over time (e.g., ICD-coded diagnosis at follow-up), enabling eventual linkage without a new study.",
+    "surrogate_only": "Deployment produces outputs and logs, but no natural correctness signal is generated. Workflow monitoring (alert rates, output volume) is possible, but clinical accuracy cannot be re-measured from routine data alone. This is the modal class: 85% of FDA-authorized AI devices.",
+    "not_evaluable": "The public summary contains no deployment description — typically a bare clearance letter. No performance data of any kind is available from routine deployment.",
+}
+
+# ---------------------------------------------------------------------------
+# Recoverability vocabulary
+# ---------------------------------------------------------------------------
+RECOVERABILITY_LABELS: dict[str, str] = {
+    "directly_auditable": "Directly auditable",
+    "recoverable_with_linkage": "Recoverable with data linkage",
+    "recoverable_with_chart_review": "Recoverable with chart/image review",
+    "proxy_only": "Proxy only (authorization endpoint not recoverable)",
+    "not_recoverable": "Not recoverable",
+    "unclear": "Unclear",
+}
+
+RECOVERABILITY_DESCRIPTIONS: dict[str, str] = {
+    "directly_auditable": "The authorization endpoint can be re-measured from existing routine deployment data — both AI output and ground truth are already co-collected and linked. Empirically rare: 1 in 1,400 devices.",
+    "recoverable_with_linkage": "The ground truth exists in structured electronic records (ICD codes, lab results, structured report fields) and can be joined to AI output logs by patient/study identifier — no manual reading required. Requires data engineering. 3.6% of devices.",
+    "recoverable_with_chart_review": "The authorization endpoint ground truth exists in clinical records but requires a human expert to manually review, re-annotate, or adjudicate cases — equivalent effort to a new validation substudy. 42.8% of devices.",
+    "proxy_only": "The authorization endpoint cannot be recovered from routine data. Deployment produces operational proxies (workflow metrics, output rates) but these are weaker than what the device was cleared on. The modal outcome: 51.1% of devices.",
+    "not_recoverable": "The authorization endpoint cannot be recovered AND routine deployment produces no meaningful operational proxy. Typically bare clearance letters or pure bench-tested devices. 2.4% of devices.",
+    "unclear": "Insufficient information to determine recoverability.",
+}
 
 DEFAULT_VALUE = "unclear"
 

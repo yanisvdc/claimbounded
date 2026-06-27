@@ -2,17 +2,20 @@
 
 Given a :class:`~claimbounded.schema.DeviceEvidenceProfile`, decide:
 
-* ``classify_claim_ceiling``      -> the strongest claim routine evidence supports
-* ``classify_supportable_claims`` -> the full multi-label set of supportable claims
-* ``classify_audit_burden``       -> the evidence work needed to go higher
+* ``classify_claim_ceiling``            -> the strongest claim routine evidence supports
+* ``classify_supportable_claims``       -> the full multi-label set of supportable claims
+* ``classify_audit_burden``             -> the evidence work needed to go higher
+* ``classify_evaluability_class``       -> what kind of correctness signal routine
+                                           deployment naturally produces
+* ``classify_recoverability``           -> whether the authorization endpoint can be
+                                           recovered from routine data
 * ``estimate_authorization_remeasurement`` -> whether/how the authorization
   endpoint itself can be re-measured after deployment
 
 The rules are transparent and conservative; they mirror the coding logic used
-to build the empirical corpus.  When a profile is a corpus row (its
-``strongest_auditable_postmarket_claim`` is already coded and not "unclear"),
-the coded value is trusted and returned directly so package output is
-consistent with the published audit.
+to build the empirical corpus.  When a profile is a corpus row (its coded
+primary variables are already present and not "unclear"), the coded values are
+trusted and returned directly so package output is consistent with the V4 audit.
 """
 
 from __future__ import annotations
@@ -132,6 +135,118 @@ def classify_audit_burden(profile: DeviceEvidenceProfile) -> dict[str, Any]:
         "label": AUDIT_BURDEN_LABELS.get(burden, burden),
         "driven_by_ground_truth": _coded(profile, "authorization_ground_truth_modality"),
     }
+
+
+_EVALUABILITY_CODED = {
+    "closed_loop_evaluable", "workflow_endpoint_directly_auditable",
+    "correction_evaluable", "delayed_evaluable",
+    "surrogate_only", "not_evaluable",
+}
+
+_RECOVERABILITY_CODED = {
+    "directly_auditable", "recoverable_with_linkage",
+    "recoverable_with_chart_review", "proxy_only", "not_recoverable",
+}
+
+_STRUCTURED_GT = {
+    "clinical_diagnosis", "laboratory_reference_method", "physiologic_reference_standard",
+}
+
+_EXPERT_REVIEW_GT = {
+    "expert_reader_panel", "expert_annotation", "pathology_or_histology",
+    "longitudinal_clinical_outcome",
+}
+
+_BENCH_GT = {
+    "phantom_or_bench_reference", "predicate_device_comparison", "not_reported",
+}
+
+_NONCLINICAL_ENDPOINTS = {
+    "nonclinical_technical_or_bench_performance",
+    "no_device_specific_performance_data_in_public_summary",
+    "technical_performance_only",
+    "substantial_equivalence_only",
+}
+
+
+def classify_evaluability_class(profile: DeviceEvidenceProfile) -> str:
+    """Classify the postmarket evaluability class — what correctness signal routine
+    deployment naturally produces.
+
+    Trusts coded value for corpus rows; derives from user inputs for new devices.
+    Follows the V4 OSF codebook decision rules (conservative by default).
+    """
+    coded = _coded(profile, "postmarket_evaluability_class")
+    if coded in _EVALUABILITY_CODED:
+        return coded
+
+    endpoint_type = _coded(profile, "authorization_endpoint_type")
+    correction = _coded(profile, "human_correction_available")
+    linked = _coded(profile, "endpoint_linked_to_ai_output")
+    gt = _coded(profile, "authorization_ground_truth_modality")
+    endpoint_occurs = _coded(profile, "endpoint_occurs_in_routine_care")
+
+    # Bare clearance — no meaningful deployment description
+    if endpoint_type in {"no_device_specific_performance_data_in_public_summary"}:
+        return "not_evaluable"
+
+    # Workflow device with co-logged metric: the authorized endpoint IS the log
+    if endpoint_type in {"workflow_or_timeliness_performance"} and linked == "yes":
+        return "workflow_endpoint_directly_auditable"
+
+    # Physician edit/confirmation explicitly captured in accessible system
+    if correction == "yes":
+        return "correction_evaluable"
+
+    # Future outcome accumulates naturally in clinical records over time
+    if gt == "longitudinal_clinical_outcome" and endpoint_occurs in {"yes", "sometimes"}:
+        return "delayed_evaluable"
+
+    return "surrogate_only"
+
+
+def classify_recoverability(profile: DeviceEvidenceProfile) -> str:
+    """Classify whether the authorization endpoint can be recovered from routine data.
+
+    Trusts coded value for corpus rows; derives for new devices.
+    The overwhelming empirical finding: 51% proxy_only, 43% requires chart review,
+    only 1 in 1,400 devices is directly_auditable.
+    """
+    coded = _coded(profile, "authorization_endpoint_recoverability")
+    if coded in _RECOVERABILITY_CODED:
+        return coded
+
+    endpoint_type = _coded(profile, "authorization_endpoint_type")
+    gt = _coded(profile, "authorization_ground_truth_modality")
+    linked = _coded(profile, "endpoint_linked_to_ai_output")
+    endpoint_occurs = _coded(profile, "endpoint_occurs_in_routine_care")
+
+    # Nonclinical/bench — no clinical correctness signal possible
+    if endpoint_type in _NONCLINICAL_ENDPOINTS:
+        return "not_recoverable"
+
+    # Workflow: authorized metric IS co-logged in deployment
+    if endpoint_type in {"workflow_or_timeliness_performance"} and linked == "yes":
+        return "directly_auditable"
+
+    # Explicit case-level linkage + reference occurs in routine care
+    if linked == "yes" and endpoint_occurs == "yes":
+        return "directly_auditable"
+
+    # Structured EHR records (ICD codes, lab, physiologic ref) — data engineering only
+    if gt in _STRUCTURED_GT and endpoint_occurs in {"yes", "sometimes"}:
+        return "recoverable_with_linkage"
+
+    # Expert panel / annotation / pathology / longitudinal — human effort required
+    if gt in _EXPERT_REVIEW_GT:
+        return "recoverable_with_chart_review"
+
+    # Phantom / bench / predicate — no clinical analogue in deployment
+    if gt in _BENCH_GT:
+        return "proxy_only"
+
+    # Conservative default: most AI devices cannot recover their authorization endpoint
+    return "proxy_only"
 
 
 def _derive_audit_burden(profile: DeviceEvidenceProfile) -> str:

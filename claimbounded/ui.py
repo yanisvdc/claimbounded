@@ -317,15 +317,17 @@ def _format_device_panel(profile: Any, extra: dict | None = None) -> str:
         lines.append("")
 
     # Policy flags
-    pccp = _v(d, "pccp_present")
-    pmp = _v(d, "postmarket_monitoring_plan_mentioned")
+    pccp_raw = d.get("pccp_present", "")
+    pmp_raw = d.get("postmarket_monitoring_plan_mentioned", "")
     vtype = _v(d, "validation_type")
-    if pccp or pmp or vtype:
-        lines += ["---", "**Policy flags**", ""]
-        if pccp:
-            lines.append(f"PCCP present: {pccp}")
-        if pmp:
-            lines.append(f"Postmarket monitoring plan mentioned: {pmp}")
+    if pccp_raw or pmp_raw or vtype:
+        lines += ["---", "**Policy & validation flags**", ""]
+        if pccp_raw and pccp_raw != "unclear":
+            note = " *(only 4% of authorized AI devices have a PCCP)*" if pccp_raw == "yes" else " *(96% of authorized AI devices have none)*"
+            lines.append(f"PCCP present: **{pccp_raw}**{note}")
+        if pmp_raw and pmp_raw != "unclear":
+            note = " *(only 1.1% of authorized AI devices describe one)*" if pmp_raw == "yes" else " *(98.9% of authorized AI devices describe none)*"
+            lines.append(f"Postmarket monitoring plan: **{pmp_raw}**{note}")
         if vtype:
             lines.append(f"Validation type: {vtype}")
         lines.append("")
@@ -372,6 +374,20 @@ def _profile_card_html(d: dict, idx: int) -> str:
                     f'<div class="cbr-ivalue" style="font-size:13px">{v.replace("_"," ")}</div></div>')
         return ""
 
+    pccp_val = d.get("pccp_present", "")
+    pmp_val = d.get("postmarket_monitoring_plan_mentioned", "")
+
+    def field_with_context(label: str, key: str, context_note: str = "") -> str:
+        v = d.get(key, "")
+        if v and v != "unclear":
+            note_html = (f'<div style="font-size:11px;color:#64748b;margin-top:2px">{context_note}</div>'
+                         if context_note else "")
+            return (f'<div class="cbr-info" style="margin-bottom:8px">'
+                    f'<div class="cbr-ilabel">{label}</div>'
+                    f'<div class="cbr-ivalue" style="font-size:13px">{v.replace("_"," ")}</div>'
+                    f'{note_html}</div>')
+        return ""
+
     fields_html = "".join([
         field("Clinical domain", "clinical_domain"),
         field("Device function", "device_function"),
@@ -379,9 +395,14 @@ def _profile_card_html(d: dict, idx: int) -> str:
         field("Ground truth modality", "authorization_ground_truth_modality"),
         field("Routine data claim type", "routine_data_claim_type"),
         field("Endpoint recoverability", "authorization_endpoint_recoverability"),
+        field("Evaluability class", "postmarket_evaluability_class"),
         field("Validation type", "validation_type"),
-        field("PCCP present", "pccp_present"),
-        field("Postmarket monitoring plan", "postmarket_monitoring_plan_mentioned"),
+        field_with_context("PCCP present", "pccp_present",
+            "96% of FDA-authorized AI devices have no PCCP" if pccp_val == "no" else
+            "PCCP present — only 4% of authorized AI devices" if pccp_val == "yes" else ""),
+        field_with_context("Postmarket monitoring plan", "postmarket_monitoring_plan_mentioned",
+            "Only 1.1% of authorized AI devices describe a device-specific monitoring plan" if pmp_val == "yes" else
+            "No device-specific monitoring plan — 98.9% of authorized devices describe none" if pmp_val == "no" else ""),
     ])
 
     ceiling_color = "#16a34a" if "accuracy" in ceiling or "calibration" in ceiling else (
@@ -631,6 +652,52 @@ def _generate_profile_docx(profiles: list, title: str = "Device Profile Report")
     return tmp.name
 
 
+def _landscape_html(ctx: dict, ceiling: str, recov: str, evaluability: str,
+                    ceiling_label: str, recov_label: str, eval_label: str) -> str:
+    """Render the landscape context panel showing corpus-level percentages."""
+    n = ctx.get("n_corpus", 0)
+    if not n:
+        return ""
+
+    def _stat(key: str, label: str, value_label: str, color: str) -> str:
+        pct = ctx.get(f"{key}_pct")
+        peer_pct = ctx.get(f"{key}_peer_pct")
+        n_peers = ctx.get("n_peers", 0)
+        if pct is None:
+            return ""
+        peer_note = (f' · {peer_pct}% among {n_peers} same-function peers' if peer_pct is not None else "")
+        return (
+            f'<div class="cbr-stat" style="border-top-color:{color}">'
+            f'<div class="cbr-val" style="color:{color}">{pct}%</div>'
+            f'<div class="cbr-lbl" style="font-size:11px"><strong>{value_label}</strong><br>'
+            f'of {n:,} FDA-authorized AI devices share this {label}{peer_note}</div>'
+            f'</div>'
+        )
+
+    ceiling_stat  = _stat("ceiling",        "claim ceiling",    ceiling_label,  "#0369a1")
+    recov_stat    = _stat("recoverability",  "recoverability",   recov_label,    "#b45309")
+    eval_stat     = _stat("evaluability",    "evaluability class", eval_label,   "#6b21a8")
+
+    stats = "".join(s for s in [ceiling_stat, recov_stat, eval_stat] if s)
+    if not stats:
+        return ""
+
+    return f"""<div class="cbr-section">
+  <h2>Landscape Context — 1,400 FDA-Authorized AI Devices</h2>
+  <p style="font-size:13px;color:#475569;margin-bottom:16px">
+    How does this device compare to the full corpus of {n:,} FDA-authorized AI medical devices
+    analyzed in the study? These percentages are drawn from public FDA authorization summaries
+    (doi:10.17605/OSF.IO/74WAP).
+  </p>
+  <div class="cbr-stats" style="grid-template-columns:repeat(3,1fr)">{stats}</div>
+  <p style="font-size:11px;color:#94a3b8;margin-top:12px">
+    Source: Vandecasteele &amp; Vandecasteele (2026). "Beyond Drift Signals: Claim-Bounded
+    Monitoring of AI-Enabled Medical Devices." Grounded in 1,400 public FDA 510(k) and De Novo
+    authorization summaries. N=1,400 total; distributions reflect the full V4 corpus.
+  </p>
+</div>"""
+
+
 def _generate_html_report(pkg: dict[str, Any]) -> str:
     today = str(_date.today())
     cp = pkg["claim_profile"]
@@ -647,6 +714,13 @@ def _generate_html_report(pkg: dict[str, Any]) -> str:
     applicant = device.get("applicant", "")
     submission = device.get("submission_number", "")
     dash = pkg["dashboard_claim_limits"]
+    evaluability = cp.get("postmarket_evaluability_class", "unclear")
+    evaluability_label = cp.get("evaluability_label", evaluability.replace("_", " "))
+    evaluability_desc = cp.get("evaluability_description", "")
+    recoverability = cp.get("authorization_endpoint_recoverability", "unclear")
+    recoverability_label = cp.get("recoverability_label", recoverability.replace("_", " "))
+    recoverability_desc = cp.get("recoverability_description", "")
+    ctx = pkg.get("landscape_context", {})
 
     ladder = []
     for claim in reversed(_CLAIM_HIERARCHY):
@@ -754,6 +828,27 @@ def _generate_html_report(pkg: dict[str, Any]) -> str:
   <div class="cbr-info am"><div class="cbr-ilabel">Additional evidence work required</div>
     <div class="cbr-ivalue" style="font-size:14px;font-weight:400">{rem.get("extra_evidence_needed","")}</div></div>
 </div>
+<div class="cbr-section">
+  <h2>Postmarket Evaluability &amp; Endpoint Recoverability</h2>
+  <p style="font-size:13px;color:#475569;margin-bottom:18px">These are the two primary variables of the study (κ&nbsp;≥&nbsp;0.75 inter-rater agreement). They distinguish <em>what correctness signal routine deployment naturally produces</em> from <em>whether the authorization endpoint can be recovered with additional work</em>.</p>
+  <div class="cbr-2col">
+    <div>
+      <div class="cbr-info" style="border-left-color:#0891b2">
+        <div class="cbr-ilabel">Postmarket evaluability class</div>
+        <div class="cbr-ivalue">{evaluability_label}</div>
+        <div class="cbr-isub" style="margin-top:6px">{evaluability_desc}</div>
+      </div>
+    </div>
+    <div>
+      <div class="cbr-info am">
+        <div class="cbr-ilabel">Authorization endpoint recoverability</div>
+        <div class="cbr-ivalue">{recoverability_label}</div>
+        <div class="cbr-isub" style="margin-top:6px">{recoverability_desc}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{_landscape_html(ctx, ceiling, recoverability, evaluability, ceiling_label, recoverability_label, evaluability_label)}
 <div class="cbr-section">
   <h2>Dashboard Claim Limits</h2>
   <div class="cbr-info"><div class="cbr-ilabel">Responsible monitoring claim (supportable now)</div>
