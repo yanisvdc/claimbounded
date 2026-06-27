@@ -21,7 +21,10 @@ import os
 from claimbounded import (
     profile_device,
     classify_claim_ceiling,
+    classify_evaluability_class,
+    classify_recoverability,
     classify_supportable_claims,
+    corpus_stats,
     estimate_authorization_remeasurement,
     retrieve_precedents,
     generate_monitoring_package,
@@ -39,7 +42,10 @@ def main() -> None:
     print("DEVICE:", profile.name)
     print("=" * 78)
 
-    print("\nRoutine-evidence claim ceiling:", classify_claim_ceiling(profile))
+    # --- V4 primary variables ---
+    print("\nPostmarket evaluability class:", classify_evaluability_class(profile))
+    print("Authorization endpoint recoverability:", classify_recoverability(profile))
+    print("Routine-evidence claim ceiling:", classify_claim_ceiling(profile))
     print("Supportable claims:", classify_supportable_claims(profile))
 
     rem = estimate_authorization_remeasurement(profile)
@@ -47,6 +53,16 @@ def main() -> None:
           rem["can_audit_authorization_endpoint_with_routine_data"])
     print("Claim gap:", rem["claim_gap"])
     print("Audit burden:", rem["postmarket_audit_burden"])
+
+    ctx = corpus_stats(profile)
+    if ctx:
+        print(f"\nLandscape context (N={ctx['n_corpus']:,} FDA-authorized AI devices):")
+        if ctx.get("ceiling_pct") is not None:
+            print(f"  {ctx['ceiling_pct']}% share this claim ceiling")
+        if ctx.get("recoverability_pct") is not None:
+            print(f"  {ctx['recoverability_pct']}% share this recoverability class")
+        if ctx.get("evaluability_pct") is not None:
+            print(f"  {ctx['evaluability_pct']}% share this evaluability class")
 
     print("\n--- Like-for-like precedents (same regulatory identity) ---")
     for p in retrieve_precedents(profile, mode="like_for_like", k=5):

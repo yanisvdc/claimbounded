@@ -24,7 +24,7 @@ dependencies = []
 
 [project.optional-dependencies]
 test = ["pytest>=7.0"]
-ui = ["gradio>=4.0", "python-docx>=1.1"]
+ui = ["gradio>=6.0", "python-docx>=1.1"]
 
 [project.scripts]
 claimbounded = "claimbounded.cli:main"

@@ -128,12 +128,27 @@ def generate_monitoring_profile_report(
     lines.append("")
 
     lines.append("## Claim profile")
+    lines.append(f"- **Postmarket evaluability class:** {cp.get('evaluability_label', cp.get('postmarket_evaluability_class',''))}")
+    lines.append(f"- **Authorization endpoint recoverability:** {cp.get('recoverability_label', cp.get('authorization_endpoint_recoverability',''))}")
     lines.append(f"- Routine-evidence claim ceiling: **{CLAIM_LABELS.get(cp['routine_evidence_claim_ceiling'], cp['routine_evidence_claim_ceiling'])}**")
     lines.append(f"- Supportable claims: {', '.join(CLAIM_LABELS.get(c, c) for c in cp['supportable_claims'])}")
     lines.append(f"- Audit burden: {cp['audit_burden']['label']}")
     lines.append(f"- Can re-measure authorization endpoint from routine data: **{rem['can_audit_authorization_endpoint_with_routine_data']}** ({rem['claim_gap']})")
     lines.append(f"- Extra evidence needed: {rem['extra_evidence_needed']}")
     lines.append("")
+
+    ctx = pkg.get("landscape_context", {})
+    if ctx.get("n_corpus"):
+        lines.append("## Landscape context")
+        lines.append(f"Among {ctx['n_corpus']:,} FDA-authorized AI devices (doi:10.17605/OSF.IO/74WAP):")
+        for key, label in [("ceiling", "claim ceiling"), ("recoverability", "recoverability class"), ("evaluability", "evaluability class")]:
+            pct = ctx.get(f"{key}_pct")
+            peer_pct = ctx.get(f"{key}_peer_pct")
+            n_peers = ctx.get("n_peers")
+            if pct is not None:
+                peer = f" · {peer_pct}% among {n_peers} same-function peers" if peer_pct is not None else ""
+                lines.append(f"- {pct}% share this {label}{peer}")
+        lines.append("")
 
     lines.append("## Claim-support matrix")
     lines.append(
