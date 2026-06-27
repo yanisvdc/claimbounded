@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from typing import Any, Optional
 
-SCHEMA_VERSION = "v3_auditability"
+SCHEMA_VERSION = "v4_claimbounded"
 
 # ---------------------------------------------------------------------------
 # Ordered claim hierarchy
@@ -99,24 +99,27 @@ STRUCTURED_REGULATORY_FIELDS = [
 CLAIM_SCHEMA_FIELDS = [
     "authorization_endpoint_type",
     "authorization_ground_truth_modality",
-    "routine_postmarket_evidence_stream",
+    "routine_data_claim_type",
     "strongest_auditable_postmarket_claim",
     "postmarket_audit_burden",
+    "postmarket_evaluability_class",
 ]
 
 BM25_TEXT_FIELDS = [
-    "intended_use_summary",
-    "authorization_performance_claim",
     "authorization_endpoint",
-    "deployment_output",
-    "routine_deployment_evidence",
-    "extra_evidence_needed",
     "supporting_quote_authorization",
     "supporting_quote_deployment",
     "supporting_quote_evaluability",
+    # also searched when provided by users profiling new devices
+    "intended_use_summary",
+    "authorization_performance_claim",
+    "deployment_output",
+    "routine_deployment_evidence",
+    "extra_evidence_needed",
 ]
 
 EVIDENCE_GAP_FIELDS = [
+    "authorization_endpoint_recoverability",
     "extra_evidence_needed",
     "reason_authorization_endpoint_not_auditable",
     "monitoring_implication",
@@ -134,10 +137,12 @@ PROFILE_FIELDS = [
     "product_code",
     "regulation_number",
     "clinical_domain",
+    "disease_area",
     "device_function",
     "device_role",
     "input_data_type",
     "primary_ai_task",
+    "ai_ml_explicitly_described",
     "intended_use_summary",
     "intended_user",
     "intended_setting",
@@ -147,28 +152,41 @@ PROFILE_FIELDS = [
     "authorization_endpoint_type",
     "authorization_ground_truth_modality",
     "authorization_validation_design",
+    "validation_type",
     # deployment evidence
     "deployment_output",
     "routine_deployment_evidence",
     "routine_feedback_available",
     "routine_postmarket_evidence_stream",
+    "routine_data_claim_type",
     "feedback_type",
     "endpoint_occurs_in_routine_care",
     "endpoint_routinely_recorded",
     "endpoint_linked_to_ai_output",
     "endpoint_ascertainment_window",
+    "endpoint_latency_category",
     "feedback_latency",
     "human_correction_available",
     "human_overread_or_confirmation_required",
     "clinical_outcome_required_to_verify",
     # coded outcomes (present for corpus rows; derived for new devices)
     "postmarket_audit_burden",
+    "authorization_endpoint_recoverability",
     "can_audit_authorization_endpoint_with_routine_data",
     "reason_authorization_endpoint_not_auditable",
     "postmarket_evaluability_class",
     "strongest_auditable_postmarket_claim",
+    "immediate_postmarket_claim",
+    "mature_postmarket_claim",
     "extra_evidence_needed",
     "monitoring_implication",
+    "evidence_explicitness",
+    "confidence",
+    "final_verification_status",
+    # new V4 policy flags
+    "pccp_present",
+    "postmarket_monitoring_plan_mentioned",
+    "subgroup_performance_reported",
     # free text used by retrieval
     "supporting_quote_authorization",
     "supporting_quote_deployment",

@@ -97,13 +97,17 @@ def find_in_corpus(submission_number: str) -> Optional[DeviceEvidenceProfile]:
 
 
 def search_corpus(text: str) -> list[DeviceEvidenceProfile]:
-    """Case-insensitive substring search over device name / applicant / use."""
+    """Case-insensitive substring search over device name, applicant, and excerpts."""
 
     needle = text.strip().lower()
     hits = []
     for r in _read_rows():
         haystack = " ".join(
-            str(r.get(k, "")) for k in ("device_name", "applicant", "intended_use_summary")
+            str(r.get(k, "")) for k in (
+                "device_name", "applicant", "intended_use_summary",
+                "authorization_endpoint", "supporting_quote_authorization",
+                "clinical_domain", "device_function",
+            )
         ).lower()
         if needle in haystack:
             hits.append(DeviceEvidenceProfile(fields=dict(r)))

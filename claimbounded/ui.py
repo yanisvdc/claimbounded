@@ -264,7 +264,7 @@ def _format_device_panel(profile: Any, extra: dict | None = None) -> str:
 
     # Quick-scan row
     tags = []
-    for key in ("clinical_domain", "device_function", "input_data_type"):
+    for key in ("clinical_domain", "device_function"):
         v = _v(d, key)
         if v:
             tags.append(f"`{v}`")
@@ -274,9 +274,10 @@ def _format_device_panel(profile: Any, extra: dict | None = None) -> str:
     # Authorization & evidence
     ep = _v(d, "authorization_endpoint_type")
     gt = _v(d, "authorization_ground_truth_modality")
-    stream = _v(d, "routine_postmarket_evidence_stream")
+    data_claim = _v(d, "routine_data_claim_type")
     ceiling = _v(d, "strongest_auditable_postmarket_claim")
     burden = _v(d, "postmarket_audit_burden")
+    recoverability = _v(d, "authorization_endpoint_recoverability")
 
     if ep or gt:
         lines += ["---", "**What it was authorized on**", ""]
@@ -286,25 +287,36 @@ def _format_device_panel(profile: Any, extra: dict | None = None) -> str:
             lines.append(f"Ground truth: {gt}")
         lines.append("")
 
-    if stream or ceiling:
+    if data_claim or ceiling:
         lines += ["---", "**What routine deployment generates**", ""]
-        if stream:
-            lines.append(f"Routine evidence stream: {stream}")
+        if data_claim:
+            lines.append(f"Routine data claim type: {data_claim}")
         if ceiling:
             lines.append(f"Postmarket claim ceiling: **{ceiling}**")
         if burden:
             lines.append(f"Audit burden: {burden}")
+        if recoverability:
+            lines.append(f"Endpoint recoverability: {recoverability}")
         lines.append("")
 
-    # Full intended use
-    iu = d.get("intended_use_summary", "")
-    if iu and iu not in ("", "unclear"):
-        lines += ["---", "**Full intended use**", "", iu, ""]
+    # Policy flags
+    pccp = _v(d, "pccp_present")
+    pmp = _v(d, "postmarket_monitoring_plan_mentioned")
+    vtype = _v(d, "validation_type")
+    if pccp or pmp or vtype:
+        lines += ["---", "**Policy flags**", ""]
+        if pccp:
+            lines.append(f"PCCP present: {pccp}")
+        if pmp:
+            lines.append(f"Postmarket monitoring plan mentioned: {pmp}")
+        if vtype:
+            lines.append(f"Validation type: {vtype}")
+        lines.append("")
 
-    # Authorization performance claim
-    apc = d.get("authorization_performance_claim", "")
-    if apc and apc not in ("", "unclear"):
-        lines += ["---", "**Authorization performance claim**", "", apc, ""]
+    # Authorization endpoint description
+    auth_ep = d.get("authorization_endpoint", "")
+    if auth_ep and auth_ep not in ("", "unclear"):
+        lines += ["---", "**Authorization endpoint description**", "", auth_ep, ""]
 
     # Supporting quote
     sq = d.get("supporting_quote_authorization", "")
@@ -330,8 +342,7 @@ def _profile_card_html(d: dict, idx: int) -> str:
     name = d.get("device_name", "")
     applicant = d.get("applicant", "")
     year = d.get("year", "")
-    iu = d.get("intended_use_summary", "")
-    apc = d.get("authorization_performance_claim", "")
+    auth_ep = d.get("authorization_endpoint", "")
     sq = d.get("supporting_quote_authorization", "")
     ceiling = d.get("strongest_auditable_postmarket_claim", "").replace("_", " ")
     burden = d.get("postmarket_audit_burden", "").replace("_", " ")
@@ -347,25 +358,23 @@ def _profile_card_html(d: dict, idx: int) -> str:
     fields_html = "".join([
         field("Clinical domain", "clinical_domain"),
         field("Device function", "device_function"),
-        field("Input data type", "input_data_type"),
         field("Authorization endpoint type", "authorization_endpoint_type"),
         field("Ground truth modality", "authorization_ground_truth_modality"),
-        field("Routine evidence stream", "routine_postmarket_evidence_stream"),
+        field("Routine data claim type", "routine_data_claim_type"),
+        field("Endpoint recoverability", "authorization_endpoint_recoverability"),
+        field("Validation type", "validation_type"),
+        field("PCCP present", "pccp_present"),
+        field("Postmarket monitoring plan", "postmarket_monitoring_plan_mentioned"),
     ])
 
     ceiling_color = "#16a34a" if "accuracy" in ceiling or "calibration" in ceiling else (
         "#d97706" if "concordance" in ceiling or "quality" in ceiling else "#0891b2"
     )
 
-    iu_section = (f'<div style="margin:16px 0">'
-                  f'<div class="cbr-ilabel">Full intended use</div>'
-                  f'<p style="margin-top:8px;font-size:13px;line-height:1.7;color:#0f172a">{iu}</p>'
-                  f'</div>') if iu and iu != "unclear" else ""
-
-    apc_section = (f'<div style="margin:16px 0">'
-                   f'<div class="cbr-ilabel">Authorization performance claim</div>'
-                   f'<p style="margin-top:8px;font-size:13px;line-height:1.7;color:#0f172a">{apc}</p>'
-                   f'</div>') if apc and apc != "unclear" else ""
+    auth_ep_section = (f'<div style="margin:16px 0">'
+                       f'<div class="cbr-ilabel">Authorization endpoint description</div>'
+                       f'<p style="margin-top:8px;font-size:13px;line-height:1.7;color:#0f172a">{auth_ep}</p>'
+                       f'</div>') if auth_ep and auth_ep != "unclear" else ""
 
     quote_section = (f'<blockquote style="margin:16px 0;padding:12px 16px;border-left:4px solid #bae6fd;'
                      f'background:#f0f9ff;border-radius:0 8px 8px 0;font-style:italic;font-size:13px;color:#475569">'
@@ -388,8 +397,7 @@ def _profile_card_html(d: dict, idx: int) -> str:
   <hr style="border:none;border-top:2px solid #bae6fd;margin:16px 0">
   <div class="cbr-2col" style="margin-bottom:0">{fields_html}</div>
   {f'<div class="cbr-info am"><div class="cbr-ilabel">Postmarket claim ceiling</div><div class="cbr-ivalue">{ceiling}</div><div class="cbr-isub">Audit burden: {burden}</div></div>' if ceiling and ceiling != "unclear" else ""}
-  {iu_section}
-  {apc_section}
+  {auth_ep_section}
   {quote_section}
   <div style="font-size:11px;color:#94a3b8;margin-top:8px">Source: accessdata.fda.gov · {pathway} {sub}</div>
 </div>"""
@@ -416,7 +424,7 @@ def _build_profile_html(profiles: list, title: str = "Claim-Bounded Monitoring o
 <div class="cbr-wrap"><div class="cbr-container">
 
 <header class="cbr-header">
-  <div class="cbr-brand">claimbounded · FDA AI Device Corpus · schema v3_auditability</div>
+  <div class="cbr-brand">claimbounded · FDA AI Device Corpus · schema v4_claimbounded</div>
   <h1>{title}</h1>
   <div class="cbr-meta">{n} device{"s" if n != 1 else ""} · {today} · Grounded in 1,400 public FDA authorization records</div>
 </header>
@@ -460,7 +468,7 @@ def _build_profile_html(profiles: list, title: str = "Claim-Bounded Monitoring o
 <div class="cbr-footer">
   <p><strong>Grounding note:</strong> All profiles are drawn from publicly available FDA 510(k) and De Novo
   authorization summaries for AI-enabled medical devices, coded under the claimbounded study codebook
-  (schema v3_auditability). This document does not constitute a regulatory determination, does not predict
+  (schema v4_claimbounded). This document does not constitute a regulatory determination, does not predict
   FDA decisions, and does not assess device safety or effectiveness. It is intended solely to support
   evidence planning, procurement evaluation, and regulatory review.</p>
 </div>
@@ -558,9 +566,13 @@ def _generate_profile_docx(profiles: list, title: str = "Device Profile Report")
             ("Clinical domain", "clinical_domain"), ("Device function", "device_function"),
             ("Authorization endpoint type", "authorization_endpoint_type"),
             ("Ground truth modality", "authorization_ground_truth_modality"),
-            ("Routine evidence stream", "routine_postmarket_evidence_stream"),
+            ("Routine data claim type", "routine_data_claim_type"),
             ("Postmarket claim ceiling", "strongest_auditable_postmarket_claim"),
             ("Audit burden", "postmarket_audit_burden"),
+            ("Endpoint recoverability", "authorization_endpoint_recoverability"),
+            ("Validation type", "validation_type"),
+            ("PCCP present", "pccp_present"),
+            ("Postmarket monitoring plan", "postmarket_monitoring_plan_mentioned"),
         ]:
             v = d.get(key, "")
             if v and v != "unclear":
@@ -568,16 +580,11 @@ def _generate_profile_docx(profiles: list, title: str = "Device Profile Report")
                 _run(fp, f"{label}: ", bold=True, size=10)
                 _run(fp, v.replace("_", " "), size=10)
 
-        iu = d.get("intended_use_summary", "")
-        if iu and iu != "unclear":
+        auth_ep = d.get("authorization_endpoint", "")
+        if auth_ep and auth_ep != "unclear":
             doc.add_paragraph()
-            doc.add_heading("Intended Use", 3)
-            doc.add_paragraph(iu).runs[0].font.size = Pt(10)
-
-        apc = d.get("authorization_performance_claim", "")
-        if apc and apc != "unclear":
-            doc.add_heading("Authorization Performance Claim", 3)
-            doc.add_paragraph(apc).runs[0].font.size = Pt(10)
+            doc.add_heading("Authorization Endpoint Description", 3)
+            doc.add_paragraph(auth_ep).runs[0].font.size = Pt(10)
 
         sq = d.get("supporting_quote_authorization", "")
         if sq and sq != "unclear":
@@ -599,7 +606,7 @@ def _generate_profile_docx(profiles: list, title: str = "Device Profile Report")
     doc.add_paragraph()
     dp = doc.add_paragraph()
     _run(dp, "Grounding note: ", bold=True, color="#475569")
-    _run(dp, "All profiles are drawn from publicly available FDA authorization summaries under the claimbounded study codebook (schema v3_auditability). This document does not constitute a regulatory determination.", italic=True, color="#64748b", size=9)
+    _run(dp, "All profiles are drawn from publicly available FDA authorization summaries under the claimbounded study codebook (schema v4_claimbounded). This document does not constitute a regulatory determination.", italic=True, color="#64748b", size=9)
 
     tmp = tempfile.NamedTemporaryFile(suffix="_claimbounded_profiles.docx", delete=False)
     tmp.close()
@@ -649,7 +656,7 @@ def _generate_html_report(pkg: dict[str, Any]) -> str:
 
     prec_rows = []
     for i, p in enumerate(pkg["precedents"], 1):
-        use = str(p.get("intended_use_summary", ""))
+        use = str(p.get("authorization_endpoint", p.get("intended_use_summary", "")))
         pway = p.get("submission_pathway", "").replace("510k", "510(k)").replace("de_novo", "De Novo")
         match = _humanize_match(p.get("match", ""))
         prec_rows.append(
@@ -691,7 +698,7 @@ def _generate_html_report(pkg: dict[str, Any]) -> str:
 <body>
 <div class="cbr-wrap"><div class="cbr-container">
 <header class="cbr-header">
-  <div class="cbr-brand">claimbounded · Postmarket Evidence Framework · schema v3_auditability</div>
+  <div class="cbr-brand">claimbounded · Postmarket Evidence Framework · schema v4_claimbounded</div>
   <h1>{device_name}</h1>
   <div class="cbr-meta">{" · ".join(meta_parts)}</div>
 </header>
@@ -752,14 +759,14 @@ def _generate_html_report(pkg: dict[str, Any]) -> str:
     All submission numbers publicly accessible at accessdata.fda.gov. Click any row for the full device profile.
   </div>
   <div class="cbr-tw"><table>
-    <thead><tr><th>#</th><th>Submission</th><th>Device / Applicant</th><th>Intended use (excerpt)</th>
+    <thead><tr><th>#</th><th>Submission</th><th>Device / Applicant</th><th>Auth. endpoint description</th>
       <th>Endpoint type</th><th>Claim ceiling</th><th>Score</th><th>Why matched</th></tr></thead>
     <tbody>{"".join(prec_rows)}</tbody>
   </table></div>
 </div>
 <div class="cbr-footer">
   <p><strong>Grounding note:</strong> This preliminary classification was generated by applying the claimbounded
-  study codebook (schema v3_auditability) to user-provided device inputs. The codebook was derived from
+  study codebook (schema v4_claimbounded) to user-provided device inputs. The codebook was derived from
   structured extraction of 1,400 public FDA 510(k) and De Novo authorization summaries for AI-enabled medical
   devices. All precedents cited are publicly available records. This report does not constitute a regulatory
   determination, does not predict FDA decisions, and does not assess device safety or effectiveness.</p>
@@ -970,7 +977,7 @@ def _generate_docx_report(pkg: dict[str, Any]) -> str | None:
 
     dp = doc.add_paragraph()
     _run(dp, "Grounding note: ", bold=True, color="#475569")
-    _run(dp, "This preliminary classification was generated from user-provided inputs and public FDA authorization records (schema v3_auditability). It does not constitute a regulatory determination, does not predict FDA decisions, and does not assess device safety or effectiveness.", italic=True, color="#64748b", size=9)
+    _run(dp, "This preliminary classification was generated from user-provided inputs and public FDA authorization records (schema v4_claimbounded). It does not constitute a regulatory determination, does not predict FDA decisions, and does not assess device safety or effectiveness.", italic=True, color="#64748b", size=9)
 
     tmp = tempfile.NamedTemporaryFile(suffix="_claimbounded.docx", delete=False)
     tmp.close()

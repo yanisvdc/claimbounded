@@ -17,7 +17,8 @@ short_description: Claim-bounded monitoring of AI-enabled medical devices
 
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Schema](https://img.shields.io/badge/schema-v3__auditability-teal)](claimbounded/schema.py)
+[![Schema](https://img.shields.io/badge/schema-v4__claimbounded-teal)](claimbounded/schema.py)
+[![OSF Preregistration](https://img.shields.io/badge/OSF-10.17605%2FOSF.IO%2F74WAP-blue)](https://doi.org/10.17605/OSF.IO/74WAP)
 [![HuggingFace Space](https://img.shields.io/badge/🤗%20HuggingFace-Live%20Demo-orange)](https://huggingface.co/spaces/yanisvdc/claimbounded)
 
 ## Try it now — no install required
@@ -154,6 +155,8 @@ The package ships with a structured dataset of **1,400 FDA-authorized AI medical
 - Submission number, applicant, year, clinical domain, device function, product code
 
 The dataset is bundled inside the package — no external database or internet connection required.
+
+The extraction pipeline and analysis codebook are pre-registered at [doi:10.17605/OSF.IO/74WAP](https://doi.org/10.17605/OSF.IO/74WAP). Validation of primary variables against two independent human reviewers yielded κ ≥ 0.75 on all five primary variables (gate: κ ≥ 0.60).
 
 ---
 
@@ -310,7 +313,7 @@ CI runs on Python 3.9, 3.10, 3.11, and 3.12 via GitHub Actions.
 
 ## Disclaimer
 
-This package does not determine whether a device is safe or effective and does not predict FDA decisions. It maps the evidentiary relationship between authorization claims, routine postmarket evidence, and supportable monitoring claims, grounded in public authorization precedents. All classifications are preliminary and generated from user-provided inputs under the study codebook (schema `v3_auditability`). Nothing in this package constitutes regulatory advice.
+This package does not determine whether a device is safe or effective and does not predict FDA decisions. It maps the evidentiary relationship between authorization claims, routine postmarket evidence, and supportable monitoring claims, grounded in public authorization precedents. All classifications are preliminary and generated from user-provided inputs under the study codebook (schema `v4_claimbounded`, pre-registered at [doi:10.17605/OSF.IO/74WAP](https://doi.org/10.17605/OSF.IO/74WAP)). Nothing in this package constitutes regulatory advice.
 
 ---
 
@@ -321,10 +324,11 @@ If you use `claimbounded` in your research, please cite:
 ```bibtex
 @software{claimbounded2026,
   title   = {claimbounded: Claim-Bounded Monitoring of AI-Enabled Medical Devices},
-  author  = {Yanis Vandecasteele},
+  author  = {Yanis Vandecasteele and Sofiane Vandecasteele},
   year    = {2026},
   url     = {https://github.com/yanisvdc/claimbounded},
-  note    = {Schema version v3\_auditability. Grounded in 1,400 public FDA authorization records.}
+  note    = {Schema version v4\_claimbounded. Grounded in 1,400 public FDA authorization records.
+             OSF Preregistration: doi:10.17605/OSF.IO/74WAP}
 }
 ```
 
