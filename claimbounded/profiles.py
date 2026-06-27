@@ -152,7 +152,7 @@ def search_corpus(text: str) -> list[DeviceEvidenceProfile]:
             str(r.get(k, "")) for k in (
                 "device_name", "applicant", "intended_use_summary",
                 "authorization_endpoint", "supporting_quote_authorization",
-                "clinical_domain", "device_function",
+                "clinical_domain", "device_function", "disease_area",
             )
         ).lower()
         if needle in haystack:

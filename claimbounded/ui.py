@@ -918,6 +918,11 @@ def _generate_docx_report(pkg: dict[str, Any]) -> str | None:
     applicant = device.get("applicant", "")
     submission = device.get("submission_number", "")
     dash = pkg["dashboard_claim_limits"]
+    evaluability_label = cp.get("evaluability_label", cp.get("postmarket_evaluability_class", "unclear").replace("_", " "))
+    evaluability_desc = cp.get("evaluability_description", "")
+    recoverability_label = cp.get("recoverability_label", cp.get("authorization_endpoint_recoverability", "unclear").replace("_", " "))
+    recoverability_desc = cp.get("recoverability_description", "")
+    ctx = pkg.get("landscape_context", {})
 
     def _bg(cell, color: str) -> None:
         tc = cell._tc
@@ -1037,6 +1042,46 @@ def _generate_docx_report(pkg: dict[str, Any]) -> str | None:
         color = ("#16a34a" if can_audit == "yes" else "#dc2626") if is_audit else None
         _run(rp, val, color=color, bold=is_audit)
     doc.add_paragraph()
+
+    # Evaluability & Recoverability
+    doc.add_heading("Postmarket Evaluability & Endpoint Recoverability", 2)
+    note_p2 = doc.add_paragraph()
+    _run(note_p2, "Primary variables of the V4 study (κ ≥ 0.75 inter-rater agreement). ", italic=True, color="#475569", size=9)
+    _run(note_p2, "Evaluability = what correctness signal routine deployment naturally produces. Recoverability = whether the authorization endpoint can be reconstructed with additional work.", italic=True, color="#475569", size=9)
+
+    ev_t = doc.add_table(rows=2, cols=2)
+    ev_t.style = "Table Grid"
+    _bg(ev_t.rows[0].cells[0], "#e0f2fe")
+    _run(ev_t.rows[0].cells[0].paragraphs[0], "Postmarket evaluability class", bold=True, color="#0369a1", size=9)
+    _bg(ev_t.rows[0].cells[1], "#fffbeb")
+    _run(ev_t.rows[0].cells[1].paragraphs[0], "Authorization endpoint recoverability", bold=True, color="#b45309", size=9)
+    ep1 = ev_t.rows[1].cells[0].paragraphs[0]
+    _run(ep1, f"{evaluability_label}\n", bold=True, size=10)
+    if evaluability_desc:
+        _run(ep1, evaluability_desc, color="#475569", size=9)
+    ep2 = ev_t.rows[1].cells[1].paragraphs[0]
+    _run(ep2, f"{recoverability_label}\n", bold=True, size=10)
+    if recoverability_desc:
+        _run(ep2, recoverability_desc, color="#475569", size=9)
+    doc.add_paragraph()
+
+    # Landscape context
+    n_corpus = ctx.get("n_corpus", 0)
+    if n_corpus:
+        doc.add_heading("Landscape Context — 1,400 FDA-Authorized AI Devices", 2)
+        lc_p = doc.add_paragraph()
+        _run(lc_p, f"Among {n_corpus:,} FDA-authorized AI medical devices analyzed (Vandecasteele & Vandecasteele 2026, doi:10.17605/OSF.IO/74WAP):\n", italic=True, color="#475569", size=9)
+        for key, label in [("ceiling", "claim ceiling"), ("recoverability", "recoverability class"), ("evaluability", "evaluability class")]:
+            pct = ctx.get(f"{key}_pct")
+            peer_pct = ctx.get(f"{key}_peer_pct")
+            n_peers = ctx.get("n_peers")
+            val_label = {"ceiling": ceiling_label, "recoverability": recoverability_label, "evaluability": evaluability_label}[key]
+            if pct is not None:
+                lp = doc.add_paragraph(style="List Bullet")
+                _run(lp, f"{pct}%", bold=True, size=10)
+                peer_note = f" · {peer_pct}% among {n_peers} same-function peers" if peer_pct is not None else ""
+                _run(lp, f" of corpus shares this {label} ({val_label}){peer_note}", size=10)
+        doc.add_paragraph()
 
     # Dashboard limits
     doc.add_heading("Dashboard Claim Limits", 2)

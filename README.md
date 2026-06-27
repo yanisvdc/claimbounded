@@ -4,7 +4,7 @@ emoji: 🏥
 colorFrom: blue
 colorTo: indigo
 sdk: gradio
-sdk_version: "5.29.0"
+sdk_version: "6.19.0"
 app_file: app.py
 pinned: false
 license: mit
@@ -25,19 +25,28 @@ short_description: Claim-bounded monitoring of AI-enabled medical devices
 
 **[→ Open the live app on HuggingFace Spaces](https://huggingface.co/spaces/yanisvdc/claimbounded)**
 
-Run the full tool in your browser with zero setup.
+---
 
-`claimbounded` is a regulatory science Python package that answers a foundational question in AI medical device oversight:
+`claimbounded` is a regulatory science Python package grounded in a structured audit of **1,400 public FDA authorization summaries** for AI-enabled medical devices (510(k) and De Novo). It answers a foundational question in AI medical device oversight:
 
-> **What is the strongest performance claim that a health system can substantiate using only the data routine deployment naturally generates?**
+> **What is the strongest performance claim a health system can substantiate using only the data routine deployment naturally generates — and how far does that fall short of what the device was authorized on?**
 
-The package applies a transparent, rule-based codebook to a device description and returns:
-- The **claim ceiling** — the highest monitoring claim routine evidence can support
-- The **evidence gap** — how far that ceiling sits below the original authorization claim
-- The **audit burden** — what additional evidence work closing that gap requires
-- **Comparable FDA precedents** — real 510(k) and De Novo submission numbers from a corpus of 1,400 publicly authorized AI medical devices
+The package classifies any device along five primary variables validated against human reviewers (all κ ≥ 0.75):
 
-All outputs are grounded in public FDA authorization records. No external APIs, no cloud, no LLMs — fully reproducible and offline.
+| Variable | What it captures |
+|---|---|
+| **Postmarket evaluability class** | What *kind* of correctness signal routine deployment produces (surrogate-only, correction-evaluable, delayed-evaluable, directly auditable) |
+| **Authorization endpoint recoverability** | Whether the *specific* performance endpoint the device was cleared on can be recovered from routine data — and at what cost |
+| **Strongest auditable postmarket claim** | The highest claim level routine evidence can support without a new study |
+| **Postmarket audit burden** | The evidence work required to reconstruct the authorization endpoint |
+| **Routine data claim type** | Whether routine data supports the same endpoint, a clinical proxy, a workflow proxy, or only technical monitoring |
+
+**Key empirical findings from the 1,400-device corpus** (publicly available FDA summaries):
+- **85%** of authorized AI devices produce only surrogate-only evidence in deployment — no natural correctness signal
+- **62%** have a claim ceiling of *workflow performance* — alert rates and output volume, not clinical accuracy
+- **51%** have *proxy-only* recoverability — the authorization endpoint cannot be recovered from routine data at all
+- **Only 1 in 1,400** devices is directly auditable on its authorization endpoint from routine deployment data
+- **96%** have no PCCP; **99%** have no device-specific postmarket monitoring plan
 
 ---
 
@@ -45,25 +54,24 @@ All outputs are grounded in public FDA authorization records. No external APIs, 
 
 | Audience | How `claimbounded` helps |
 |---|---|
-| **Regulators** | Assess whether a manufacturer's marketed postmarket monitoring claim is supportable from the evidence their routine deployment generates. Cross-reference real FDA submission numbers from the precedent table on `accessdata.fda.gov`. |
-| **Device manufacturers** | Get a concrete roadmap: the *Manufacturer Design Requirements* section tells you exactly which logging, export, and identifier features would raise your claim ceiling and enable stronger postmarket evidence. |
-| **Health systems** | Use the *Procurement Questions* as a vendor checklist before deployment. Know the strongest monitoring claim your routine data supports — and verify it before signing a contract. |
+| **Regulators** | Assess whether a manufacturer's marketed postmarket monitoring claim is supportable from the evidence their routine deployment generates. Cross-reference real FDA submission numbers from the precedent table on `accessdata.fda.gov`. See what fraction of comparable authorized devices share the same recoverability class. |
+| **Device manufacturers** | Know your claim ceiling before your device ships. The *Manufacturer Design Requirements* section tells you exactly which logging, export, and identifier features would raise that ceiling. The *Landscape Context* shows how your device compares to 1,400 authorized peers. |
+| **Health systems** | Use the *Procurement Questions* as a vendor checklist before deployment. Know the strongest monitoring claim your routine data supports — and verify it before signing a contract. The package surfaces whether comparable authorized devices can substantiate their marketed claims. |
 
 ---
 
 ## Installation
 
-### Core package (zero runtime dependencies)
 ```bash
 pip install claimbounded
 ```
 
-### With interactive UI (adds Gradio + python-docx)
+With interactive UI (adds Gradio + python-docx):
 ```bash
 pip install "claimbounded[ui]"
 ```
 
-### From source
+From source:
 ```bash
 git clone https://github.com/yanisvdc/claimbounded
 cd claimbounded
@@ -82,7 +90,12 @@ Opens at `http://localhost:7860`. All processing runs locally — no data leaves
 
 ### Python API
 ```python
-from claimbounded import profile_device, generate_monitoring_package
+from claimbounded import (
+    profile_device,
+    classify_evaluability_class,
+    classify_recoverability,
+    generate_monitoring_package,
+)
 
 profile = profile_device({
     "device_name": "Acme LVO Triage",
@@ -90,73 +103,78 @@ profile = profile_device({
     "authorization_endpoint_type": "diagnostic_accuracy",
     "authorization_ground_truth_modality": "expert_reader_panel",
     "routine_postmarket_evidence_stream": "workflow_logs",
-    "endpoint_linked_to_ai_output": "no",
+    "endpoint_linked_to_ai_output": "possible_but_not_described",
     "human_correction_available": "no",
 })
 
-pkg = generate_monitoring_package(profile, mode="hybrid", k=8)
+# Primary V4 variables
+print(classify_evaluability_class(profile))
+# → "surrogate_only"  (85% of authorized AI devices)
 
+print(classify_recoverability(profile))
+# → "recoverable_with_chart_review"  (expert panel GT; images retained in PACS)
+
+# Full monitoring package
+pkg = generate_monitoring_package(profile, k=8)
 print(pkg["claim_profile"]["routine_evidence_claim_ceiling"])
 # → "workflow_performance"
 
-print(pkg["claim_profile"]["authorization_remeasurement"]["claim_gap"])
-# → "routine evidence is 3 levels below the authorization claim"
+print(pkg["claim_profile"]["recoverability_label"])
+# → "Recoverable with chart/image review"
 
-for p in pkg["precedents"][:3]:
-    print(p["submission_number"], p["device_name"], p["score"])
-# → K223504  Ceribell Status Epilepticus Monitor  0.357
-# → K231068  autoSCORE                           0.357
-# → K242094  Dreem 3S                            0.357
+# Landscape context: how this device compares to the 1,400-device corpus
+ctx = pkg["landscape_context"]
+print(f"{ctx['ceiling_pct']}% of FDA-authorized AI devices share this claim ceiling")
+# → "62.2% of FDA-authorized AI devices share this claim ceiling"
 ```
 
 ### CLI
 ```bash
-# Full monitoring report from a device profile JSON
 claimbounded report examples/example_profiles/lvo_triage.json
-
-# Find comparable FDA precedents
 claimbounded precedents examples/example_profiles/lvo_triage.json --mode hybrid -k 10
-
-# Look up a specific FDA submission by number
 claimbounded lookup K192383
-
-# Search the corpus by keyword
 claimbounded search "large vessel occlusion"
+claimbounded search "oncology"
 ```
 
 ---
 
-## The Claim Hierarchy
+## The Five Primary Variables
 
-`claimbounded` maps devices onto a 7-level ordered claim hierarchy. A device's **claim ceiling** is the highest level its routine deployment evidence can support without additional evidence work.
+### Postmarket evaluability class
+What *kind* of correctness signal routine deployment naturally produces — before any additional effort.
 
-| Level | Claim | Evidence required from routine data |
+| Class | Description | Prevalence |
 |---|---|---|
-| 7 | **Clinical accuracy or calibration** | Independent reference standard, outcome, adjudication, or new study |
-| 6 | **Output quality / measurement agreement** | Final measurement or report linked case-level to the AI output |
-| 5 | **Human–machine concordance** | User accept / reject / edit / override events captured on AI output |
-| 4 | **Workflow performance** | Alert delivery, timestamps, acknowledgement, turnaround time |
-| 3 | **Technical pipeline stability** | Device logs, failures, uptime, software/model version per inference |
-| 2 | **Utilization only** | Counts of device use; no output-level evidence |
-| 1 | **No performance claim auditable** | No routine evidence that re-touches device performance |
+| `surrogate_only` | Deployment produces outputs and logs but no natural correctness signal | **85%** of corpus |
+| `correction_evaluable` | Physician edits/confirmations explicitly captured and stored | 13% |
+| `delayed_evaluable` | Clinical outcome accumulates naturally over time in EHR records | 1% |
+| `workflow_endpoint_directly_auditable` | Authorization endpoint is itself a workflow metric, co-logged in deployment | <1% |
+| `closed_loop_evaluable` | AI output and ground truth both automatically co-logged | <1% |
 
-The **evidence gap** is the number of levels between the authorization endpoint (e.g., *diagnostic accuracy* → level 7) and the claim ceiling (e.g., *workflow performance* → level 4). A gap of 3 means the device cannot re-measure its authorization claim from routine deployment data alone.
+### Authorization endpoint recoverability
+Whether the *specific* authorization endpoint can be recovered and re-measured.
 
----
+| Class | Description | Prevalence |
+|---|---|---|
+| `proxy_only` | Endpoint NOT recoverable; only operational proxies available | **51%** of corpus |
+| `recoverable_with_chart_review` | Endpoint recoverable but requires expert re-annotation (major effort) | 43% |
+| `recoverable_with_linkage` | Endpoint recoverable via data engineering on structured records | 4% |
+| `not_recoverable` | Endpoint not recoverable AND no operational proxy exists | 2% |
+| `directly_auditable` | Endpoint re-measurable from routine deployment data | **<0.1%** (1 in 1,400) |
 
-## The Corpus
+### The Claim Hierarchy
+The strongest monitoring claim routine evidence can support:
 
-The package ships with a structured dataset of **1,400 FDA-authorized AI medical devices**, extracted from public 510(k) and De Novo authorization summaries. Each record contains:
-
-- Authorization endpoint type and ground-truth modality
-- Routine postmarket evidence stream (as described in the public summary)
-- Coded claim ceiling and audit burden
-- Supporting quotes extracted from the public FDA summary
-- Submission number, applicant, year, clinical domain, device function, product code
-
-The dataset is bundled inside the package — no external database or internet connection required.
-
-The extraction pipeline and analysis codebook are pre-registered at [doi:10.17605/OSF.IO/74WAP](https://doi.org/10.17605/OSF.IO/74WAP). Validation of primary variables against two independent human reviewers yielded κ ≥ 0.75 on all five primary variables (gate: κ ≥ 0.60).
+| Level | Claim | Prevalence in corpus |
+|---|---|---|
+| 7 | **Clinical accuracy or calibration** | 0% (no device reaches this from routine data) |
+| 6 | **Output quality / measurement agreement** | 2.5% |
+| 5 | **Human–machine concordance** | 11% |
+| 4 | **Workflow performance** | **62%** |
+| 3 | **Technical pipeline stability** | 23% |
+| 2 | **Utilization only** | — |
+| 1 | **No performance claim auditable** | 1% |
 
 ---
 
@@ -166,18 +184,16 @@ The extraction pipeline and analysis codebook are pre-registered at [doi:10.1760
 
 | Signal | Weight | Fields |
 |---|---|---|
-| Regulatory identity | 35% | product code, device function, submission pathway, clinical domain |
-| Evidence structure | 30% | endpoint type, ground truth, evidence stream, claim ceiling, audit burden |
-| Text similarity (BM25) | 20% | intended use, authorization performance claim, supporting quotes |
-| Evidence-gap matching | 15% | audit burden, monitoring implication, extra evidence needed |
+| Regulatory identity | 35% | disease area, clinical domain, device function, submission pathway |
+| Evidence structure | 30% | endpoint type, recoverability, ground truth, claim ceiling, evaluability class, audit burden |
+| Text similarity (BM25) | 20% | authorization endpoint description, supporting quotes |
+| Evidence-gap matching | 15% | audit burden, monitoring implication |
 
-**Retrieval modes** (`--mode` flag):
-- `hybrid` — weighted blend of all signals (recommended)
+**Retrieval modes:**
+- `hybrid` — weighted blend (recommended)
 - `like_for_like` — same regulatory and clinical identity
-- `adjacent` — same postmarket-evidence problem, any product code
+- `adjacent` — same postmarket-evidence problem, any device type
 - `claim_gap` — same divergence between authorization endpoint and ceiling
-
-The BM25 implementation is dependency-free (no external library required).
 
 ---
 
@@ -186,58 +202,36 @@ The BM25 implementation is dependency-free (no external library required).
 Launch with `claimbounded ui` and navigate three tabs:
 
 ### ① Profile & Report
-Fill in a device description using structured dropdowns (controlled vocabulary matching the corpus). Click **Generate Report** to receive:
-- A visual **claim hierarchy** showing the ceiling and authorization gap
-- A **downloadable HTML report** with full analysis and stakeholder guidance
-- A **downloadable Word document (.docx)** ready for regulatory submission
-- Up to 20 **comparable FDA precedents** with scoring explanations and full intended use text
-
-The form is pre-filled with a worked example (large vessel occlusion triage device). Hit **Auto-complete Example** to reset, or **Clear All Fields** to start from scratch.
+Fill in a device description using structured dropdowns (V4 FDA-Panel vocabulary). Click **Generate Report** to receive:
+- **Claim hierarchy** — visual ceiling and authorization gap
+- **Postmarket evaluability class** — what correctness signal deployment produces, with full V4 codebook definition
+- **Authorization endpoint recoverability** — whether/how the clearing endpoint can be recovered
+- **Landscape context** — how this device compares to 1,400 authorized peers (% sharing same ceiling, recoverability, evaluability)
+- **Minimum audit dataset**, **Manufacturer design requirements**, **Procurement questions**
+- **Comparable FDA precedents** — up to 20 real 510(k)/De Novo submission numbers with scoring
+- Downloadable HTML report and Word document (.docx)
 
 ### ② Corpus Search
-Search the 1,400-device corpus by device name, manufacturer, or intended use. Results render as a full stakeholder HTML report (downloadable as HTML or Word) showing all matching devices with complete intended use text and authorization details.
+Search the 1,400-device corpus by device name, manufacturer, authorization endpoint, disease area, or clinical domain. Results render as a full stakeholder report with evaluability class, recoverability, PCCP status, and monitoring plan notes.
 
 ### ③ Submission Lookup
-Enter a 510(k) or De Novo submission number (e.g. `K192383`) to retrieve the complete coded profile — including the full intended use text, authorization performance claim, claim ceiling, and supporting quotes from the public FDA authorization summary.
+Enter a 510(k) or De Novo submission number to retrieve the complete coded profile — including evaluability class, recoverability, claim ceiling, supporting quotes, and PCCP/monitoring plan context.
 
 ---
 
-## Live Demo
+## Validation
 
-A hosted version is available at no cost, with no installation required:
+Five primary variables validated against two independent human reviewers on a 200-record stratified sample (pre-registered before full extraction):
 
-**[https://huggingface.co/spaces/yanisvdc/claimbounded](https://huggingface.co/spaces/yanisvdc/claimbounded)**
+| Variable | κ (R1 vs R2) | 95% CI | Gate |
+|---|---|---|---|
+| `authorization_endpoint_recoverability` | 0.759 | [0.68, 0.83] | ✓ PASS |
+| `routine_data_claim_type` | 0.837 | [0.76, 0.91] | ✓ PASS |
+| `postmarket_evaluability_class` | 0.768 | [0.63, 0.88] | ✓ PASS |
+| `strongest_auditable_postmarket_claim` | 0.821 | [0.74, 0.89] | ✓ PASS |
+| `postmarket_audit_burden` | 0.832 | [0.76, 0.90] | ✓ PASS |
 
-Open the link in any browser to use the full tool — form, report generation, corpus search, and submission lookup all run on HuggingFace's servers. No Python, no setup.
-
----
-
-## Package Structure
-
-```
-claimbounded/
-├── claimbounded/
-│   ├── schema.py          # Claim hierarchy, controlled vocabulary, DeviceEvidenceProfile
-│   ├── profiles.py        # Device intake, normalization, corpus loading and search
-│   ├── claims.py          # Claim-ceiling classification (decision tree over deployment fields)
-│   ├── precedents.py      # BM25 index, structured/schema/evidence-gap similarity, retrieval
-│   ├── outputs.py         # Claim-support matrix, audit dataset, procurement questions
-│   ├── reports.py         # Report assembly and Markdown rendering
-│   ├── cli.py             # CLI entry point (report, precedents, lookup, search, ui)
-│   ├── ui.py              # Gradio interactive UI (requires claimbounded[ui])
-│   └── data/
-│       └── fda_ai_device_claims.csv   # 1,400 FDA-authorized AI device records
-├── examples/
-│   ├── lvo_stroke_triage.py           # Worked example: LVO triage device
-│   ├── lvo_report.md                  # Sample report output
-│   └── example_profiles/
-│       └── lvo_triage.json            # Example device profile (JSON)
-├── tests/
-│   └── test_claimbounded.py
-├── app.py                 # HuggingFace Spaces entry point
-├── requirements.txt       # HuggingFace Spaces dependencies
-└── pyproject.toml
-```
+Pre-registration: [doi:10.17605/OSF.IO/74WAP](https://doi.org/10.17605/OSF.IO/74WAP)
 
 ---
 
@@ -251,63 +245,49 @@ from claimbounded import (
     load_corpus,                  # → list[DeviceEvidenceProfile]
     find_in_corpus,               # submission_number → DeviceEvidenceProfile | None
     search_corpus,                # text → list[DeviceEvidenceProfile]
+    corpus_stats,                 # profile → dict (corpus-level context percentages)
 
-    # Classify
-    classify_claim_ceiling,               # profile → str
-    classify_supportable_claims,          # profile → list[str]
-    classify_audit_burden,                # profile → dict
-    estimate_authorization_remeasurement, # profile → dict
+    # Classify (primary V4 variables)
+    classify_evaluability_class,           # profile → str
+    classify_recoverability,               # profile → str
+    classify_claim_ceiling,                # profile → str
+    classify_supportable_claims,           # profile → list[str]
+    classify_audit_burden,                 # profile → dict
+    estimate_authorization_remeasurement,  # profile → dict
 
     # Retrieve precedents
     retrieve_precedents,          # (profile, mode, k) → list[dict]
-    build_bm25_index,             # → (BM25Index, list[dict])
-    structured_similarity,        # (profile, rec) → float
-    schema_similarity,            # (profile, rec) → float
-    explain_precedent_match,      # (profile, rec, components) → str
+    build_bm25_index,
+    structured_similarity,
+    schema_similarity,
+    explain_precedent_match,
 
     # Generate operational outputs
-    generate_claim_support_matrix,           # profile → list[dict]
-    generate_dashboard_claim_limits,         # profile → dict
-    generate_minimum_audit_dataset,          # profile → list[str]
-    generate_manufacturer_design_requirements, # profile → list[str]
-    generate_procurement_questions,          # profile → list[str]
+    generate_claim_support_matrix,
+    generate_dashboard_claim_limits,
+    generate_minimum_audit_dataset,
+    generate_manufacturer_design_requirements,
+    generate_procurement_questions,
 
     # Assemble complete reports
-    generate_monitoring_package,             # (profile, mode, k) → dict
-    generate_monitoring_profile_report,      # (profile, mode, k) → str (Markdown)
-
-    # Core types and constants
-    DeviceEvidenceProfile,
-    CLAIM_HIERARCHY,
-    CLAIM_LABELS,
-    SCHEMA_VERSION,
+    generate_monitoring_package,          # (profile, mode, k) → dict
+    generate_monitoring_profile_report,   # (profile, mode, k) → str (Markdown)
 )
 ```
 
 ---
 
-## Running Tests
-
-```bash
-pip install "claimbounded[test]"
-pytest -q
-```
-
-CI runs on Python 3.9, 3.10, 3.11, and 3.12 via GitHub Actions.
-
----
-
 ## Design Principles
 
-**Zero runtime dependencies** — the core package uses only the Python standard library, including a dependency-free BM25 implementation. Gradio and python-docx are optional extras (`claimbounded[ui]`).
+**Zero runtime dependencies** — the core package uses only the Python standard library, including a dependency-free BM25 implementation. Gradio and python-docx are optional extras.
 
-**Transparency** — the classification rules are fully explicit and auditable; they mirror the coding logic used to build the empirical corpus. Nothing is hidden in model weights.
+**Empirically grounded** — every classification rule mirrors the pre-registered V4 codebook used to extract and code 1,400 public FDA authorization summaries. Classifications for new devices follow the same logic as the published audit.
 
-**Precedent-grounded** — every output cites real FDA submission numbers verifiable at `accessdata.fda.gov`. The package cannot generate a recommendation that is not tied to a public precedent.
+**Conservative** — the codebook errs on the side of requiring more evidence work rather than overstating what routine data supports. `proxy_only` is the conservative default for recoverability; `surrogate_only` is the conservative default for evaluability.
 
-**Conservative** — the codebook errs on the side of requiring more evidence work rather than overstating what routine data can support.
+**Precedent-grounded** — every output cites real FDA submission numbers verifiable at `accessdata.fda.gov`. The package cannot generate a recommendation not tied to a public precedent.
 
-**Schema-first retrieval** — structured matching over shared coded fields (endpoint type, ground truth, evidence stream) outperforms free-text search for this regulatory science task. BM25 is a supplement, not the primary signal.
+**Schema-first retrieval** — structured matching over shared coded fields (endpoint type, recoverability, ground truth, evaluability class) outperforms free-text search for this regulatory science task.
 
 ---
 
@@ -319,16 +299,14 @@ This package does not determine whether a device is safe or effective and does n
 
 ## Citation
 
-If you use `claimbounded` in your research, please cite:
-
 ```bibtex
 @software{claimbounded2026,
   title   = {claimbounded: Claim-Bounded Monitoring of AI-Enabled Medical Devices},
   author  = {Yanis Vandecasteele and Sofiane Vandecasteele},
   year    = {2026},
   url     = {https://github.com/yanisvdc/claimbounded},
-  note    = {Schema version v4\_claimbounded. Grounded in 1,400 public FDA authorization records.
-             OSF Preregistration: doi:10.17605/OSF.IO/74WAP}
+  note    = {Schema version v4\_claimbounded. Grounded in 1,400 public FDA authorization
+             records. OSF Preregistration: doi:10.17605/OSF.IO/74WAP}
 }
 ```
 
@@ -336,4 +314,4 @@ If you use `claimbounded` in your research, please cite:
 
 ## License
 
-MIT © 2026 Yanis Vandecasteele
+MIT © 2026 Yanis Vandecasteele & Sofiane Vandecasteele
